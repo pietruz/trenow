@@ -79,8 +79,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       zoom: 6,
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(this.map);
 
     this.markersLayer = L.layerGroup().addTo(this.map);
@@ -132,6 +132,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
       marker.on('click', () => {
         this.map.setView([s.lat, s.lon], 14, { animate: true });
+        this.selectedTrain.set(null);
         this.selectedStation.set({
           nomeLungo: s.nome,
           nomeBreve: s.nome_breve,
@@ -249,11 +250,35 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (!treno.fermate?.length) return;
 
     const fermateValide = treno.fermate.filter(f => f.actualFermataType !== 3);
-
     const ultimoRilevamento = treno.stazioneUltimoRilevamento;
+
     let lastPassed = -1;
+    let rilevamentoCoords: [number, number] | null = null;
+    let rilevamentoInFermate = false;
+
     if (ultimoRilevamento && ultimoRilevamento !== '--') {
-      lastPassed = fermateValide.findIndex(f => f.stazione === ultimoRilevamento);
+      const searchName = ultimoRilevamento.toLowerCase().trim();
+      const fermataIdx = fermateValide.findIndex(
+        f => f.stazione.toLowerCase().trim() === searchName
+      );
+      if (fermataIdx >= 0) {
+        lastPassed = fermataIdx;
+        rilevamentoInFermate = true;
+      } else {
+        const s = this.stazioni.find(st =>
+          st.nome.toLowerCase().trim() === searchName ||
+          (st.nome_breve && st.nome_breve.toLowerCase().trim() === searchName)
+        );
+        if (s && s.lat && s.lon) {
+          rilevamentoCoords = [s.lat, s.lon];
+          for (let i = fermateValide.length - 1; i >= 0; i--) {
+            if (fermateValide[i].partenzaReale || fermateValide[i].arrivoReale) {
+              lastPassed = i;
+              break;
+            }
+          }
+        }
+      }
     }
 
     const allCoords: [number, number][] = [];
@@ -266,23 +291,34 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       }
     }
 
-    if (allCoords.length === 0) return;
+    if (allCoords.length === 0 && !rilevamentoCoords) return;
+
+    if (rilevamentoCoords) {
+      bounds.extend(rilevamentoCoords);
+    }
 
     if (lastPassed >= 0) {
       const splitIdx = Math.min(lastPassed + 1, allCoords.length - 1);
-      const completed = allCoords.slice(0, splitIdx);
-      const remaining = allCoords.slice(lastPassed);
+      const completedArr = allCoords.slice(0, splitIdx);
+      let remainingArr = allCoords.slice(lastPassed);
 
-      if (completed.length >= 2) {
-        this.completedPath = L.polyline(completed, {
+      if (rilevamentoCoords && !rilevamentoInFermate) {
+        if (completedArr.length > 0) {
+          completedArr.push(rilevamentoCoords);
+        }
+        remainingArr = [rilevamentoCoords, ...allCoords.slice(lastPassed + 1)];
+      }
+
+      if (completedArr.length >= 2) {
+        this.completedPath = L.polyline(completedArr, {
           color: '#059669',
           weight: 4,
           opacity: 0.9,
         }).addTo(this.map);
       }
 
-      if (remaining.length >= 2) {
-        this.remainingPath = L.polyline(remaining, {
+      if (remainingArr.length >= 2) {
+        this.remainingPath = L.polyline(remainingArr, {
           color: '#78350f',
           weight: 4,
           opacity: 0.9,
@@ -301,7 +337,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     for (const f of fermateValide) {
       if (!f.lat || !f.lon) continue;
 
-      const isUltimaRilevata = f.stazione === treno.stazioneUltimoRilevamento;
+      const isUltimaRilevata = rilevamentoInFermate &&
+        f.stazione.toLowerCase().trim() === ultimoRilevamento!.toLowerCase().trim();
+
       const color = isUltimaRilevata ? '#2563eb'
         : f.ritardo > 5 ? '#f59e0b'
         : f.partenzaReale || f.arrivoReale ? '#059669'
@@ -323,6 +361,18 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       `;
       marker.bindPopup(popupContent);
 
+      this.markersLayer.addLayer(marker);
+    }
+
+    if (rilevamentoCoords && !rilevamentoInFermate && ultimoRilevamento) {
+      const marker = L.circleMarker(rilevamentoCoords, {
+        radius: 8,
+        color: '#2563eb',
+        fillColor: '#2563eb',
+        fillOpacity: 0.8,
+        weight: 2,
+      });
+      marker.bindPopup(`<b>${ultimoRilevamento}</b><br/>Ultimo rilevamento`);
       this.markersLayer.addLayer(marker);
     }
 
