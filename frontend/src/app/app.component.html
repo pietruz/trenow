@@ -42,7 +42,7 @@
 
     @if (!isMobile() && (showSearch() || selectedStation() || selectedTrain())) {
       @if (!showSearch()) {
-        <div class="aa-backdrop" (click)="resetAll()"></div>
+        <div class="aa-backdrop" (click)="showTrainSearch()"></div>
       }
       <div class="aa-overlay">
         @if (showSearch()) {
