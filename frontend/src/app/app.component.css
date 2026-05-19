@@ -100,7 +100,7 @@
     transition: transform 0.2s;
   }
   .fab:active { transform: scale(0.92); }
-  .leaflet-bottom.leaflet-right { bottom: 80px !important; }
+  .leaflet-bottom.leaflet-right { bottom: 80px !important; right: auto !important; left: 16px !important; }
 }
 
 .app-wrapper { display: flex; flex-direction: column; height: 100dvh; width: 100vw; }
