@@ -166,6 +166,13 @@
   padding: 12px;
   animation: aaSlideUp 0.25s ease-out;
 }
+.aa-overlay > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
 @keyframes aaSlideUp {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
