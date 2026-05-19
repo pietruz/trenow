@@ -13,12 +13,28 @@ if ($regione < 1 || $regione > 22) {
 }
 
 $nomiRegioni = [
-    1 => 'Abruzzo', 2 => 'Basilicata', 3 => 'Calabria', 4 => 'Campania',
-    5 => 'Emilia-Romagna', 6 => 'Friuli-Venezia Giulia', 7 => 'Lazio', 8 => 'Liguria',
-    9 => 'Lombardia', 10 => 'Marche', 11 => 'Molise', 12 => 'Piemonte',
-    13 => 'Puglia', 14 => 'Sardegna', 15 => 'Sicilia', 16 => 'Toscana',
-    17 => 'Trentino-Alto Adige', 18 => 'Umbria', 19 => "Valle d'Aosta", 20 => 'Veneto',
-    21 => 'Extra', 22 => 'Extra',
+    1 => 'Lombardia, Emilia',
+    2 => 'Liguria',
+    3 => 'Piemonte, Valle d\'Aosta',
+    4 => 'Valle d\'Aosta',
+    5 => 'Lazio, Campania',
+    6 => 'Marche, Umbria',
+    7 => 'Molise, Campania',
+    8 => 'Emilia-Romagna',
+    9 => 'Trentino',
+    10 => 'Friuli-Venezia Giulia',
+    11 => 'Marche',
+    12 => 'Veneto, Trentino',
+    13 => 'Toscana',
+    14 => 'Sicilia',
+    15 => 'Basilicata',
+    16 => 'Puglia',
+    17 => 'Calabria',
+    18 => 'Campania',
+    19 => 'Abruzzo',
+    20 => 'Sardegna',
+    21 => 'Alto Adige',
+    22 => 'Alto Adige',
 ];
 
 $db = getDB();
@@ -40,9 +56,9 @@ if (!$refresh) {
     }
 }
 
-$stmt = $db->prepare("SELECT id, nome FROM stazioni WHERE regione = ? AND lat != 0 ORDER BY LENGTH(nome) DESC LIMIT ?");
-$stmt->execute([$regione, $limit]);
-$stazioni = $stmt->fetchAll();
+$stmt = $db->prepare("SELECT id, nome FROM stazioni WHERE regione = ? AND lat != 0 ORDER BY LENGTH(nome) DESC");
+$stmt->execute([$regione]);
+$stazioni = array_slice($stmt->fetchAll(), 0, $limit);
 
 if (empty($stazioni)) {
     $res = ['regione' => $regione, 'nomeRegione' => $nomiRegioni[$regione], 'timestamp' => date('c'), 'treni' => []];

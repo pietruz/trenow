@@ -25,7 +25,7 @@
         </div>
         @if (showSearch()) {
           <div class="sidebar-top">
-          <app-search #searchCompDesktop (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" />
+          <app-search #searchCompDesktop (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" (onRegionSelected)="onRegionSelected($event)" />
           </div>
         }
         <div class="sidebar-middle">
@@ -44,13 +44,20 @@
       <div class="aa-overlay" (click)="showTrainSearch()">
         <div (click)="$event.stopPropagation()">
           @if (showSearch()) {
-            <app-search #searchComp (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" />
+            <app-search #searchComp (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" (onRegionSelected)="onRegionSelected($event)" />
           } @else if (selectedTrain()) {
             <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="list" (onCloseSidebar)="showTrainSearch()" />
           } @else if (selectedStation()) {
             <app-station-panel [stazione]="selectedStation()!" (onTrainClick)="onStationTrainClick($event)" (onReset)="resetAll()" />
           }
         </div>
+      </div>
+    }
+
+    @if (regionFilterActive()) {
+      <div class="region-bar">
+        <span class="region-bar-label">{{ regionName() }}</span>
+        <button class="region-bar-close" (click)="resetRegion()">✕</button>
       </div>
     }
 
@@ -96,8 +103,12 @@
     }
 
     @if (isMobile()) {
-      <button class="fab" (click)="toggleSidebar()">{{ selectedTrain() ? (sidebarOpen() ? '✕' : 'i') : (sidebarOpen() ? '✕' : '🔍') }}</button>
+      <button class="fab" (click)="regionFilterActive() ? resetRegion() : toggleSidebar()">{{ regionFilterActive() ? '✕' : (selectedTrain() ? (sidebarOpen() ? '✕' : 'i') : (sidebarOpen() ? '✕' : '🔍')) }}</button>
       <div class="mobile-overlay" [class.visible]="sidebarOpen()" (click)="toggleSidebar()"></div>
+    }
+
+    @if (!isMobile() && regionFilterActive()) {
+      <button class="fab fab-reset" (click)="resetRegion()" title="Chiudi regione">✕</button>
     }
   </div>
 

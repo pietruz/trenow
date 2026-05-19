@@ -4,9 +4,17 @@ import { TrainDetailComponent } from './components/train-detail/train-detail.com
 import { StationPanelComponent } from './components/station-panel/station-panel.component';
 import { ApiService } from './services/api.service';
 import { Stazione, CercaStazione } from './models/stazione';
-import { DettaglioTreno } from './models/treno';
+import { DettaglioTreno, TrenoRegione } from './models/treno';
 import { TipoTrenoLabelPipe } from './pipes/tipo-treno.pipe';
 import * as L from 'leaflet';
+
+interface TrenoAnimato {
+  marker: L.Marker;
+  partenza: TrenoRegione;
+  origineCoords: [number, number];
+  destinazioneCoords: [number, number] | null;
+  direction: number;
+}
 
 @Component({
   selector: 'app-root',
@@ -30,6 +38,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   showSearch = signal(true);
   settings = signal(this.loadSettings());
   showSettings = signal(false);
+  regionFilterActive = signal(false);
+  regionName = signal('');
 
   private get overlayPadding(): [number, number] {
     return !this.isMobile() && (this.showSearch() || this.selectedStation() || this.selectedTrain())
@@ -71,6 +81,13 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private touchStartPct = 0;
   private savedMapCenter: L.LatLng | null = null;
   private savedMapZoom: number | null = null;
+  /* regione */
+  private regioneStazioniLayer!: L.FeatureGroup;
+  private treniRegioneLayer!: L.LayerGroup;
+  private treniAnimati: TrenoAnimato[] = [];
+  private animInterval: ReturnType<typeof setInterval> | null = null;
+  private regioneRefreshInterval: ReturnType<typeof setInterval> | null = null;
+  private regioneRfi = 0;
 
   constructor(private api: ApiService) {
     this.checkScreenSize();
@@ -83,6 +100,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopRefresh();
+    this.stopAnimazione();
   }
 
   @HostListener('window:resize')
@@ -149,6 +167,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
     this.markersLayer = L.layerGroup().addTo(this.map);
     this.stazioniLayer = L.layerGroup();
+    this.regioneStazioniLayer = L.featureGroup();
+    this.treniRegioneLayer = L.layerGroup();
 
     this.requestGeolocation();
   }
@@ -230,6 +250,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
     const lastPassed = this.showTrainPath(treno);
     this.stazioniLayer.remove();
+    if (this.map.hasLayer(this.regioneStazioniLayer)) this.regioneStazioniLayer.remove();
 
     const isCancelled = treno.provvedimento !== 0 ||
       (!!treno.subTitle && treno.subTitle.toLowerCase().includes('cancellat'));
@@ -250,6 +271,190 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (!this.map.hasLayer(this.stazioniLayer)) {
       this.stazioniLayer.addTo(this.map);
     }
+  }
+
+  onRegionSelected(rfi: number) {
+    this.stopRefresh();
+    this.stopAnimazione();
+    this.resetAllInner();
+    this.regioneRfi = rfi;
+
+    this.api.getTreniRegione(rfi).subscribe({
+      next: (res) => {
+        this.regionName.set(res.nomeRegione);
+        this.regionFilterActive.set(true);
+        this.showSearch.set(false);
+
+        this.stazioniLayer.remove();
+        this.markersLayer.remove();
+
+        if (this.completedPath) { this.completedPath.remove(); this.completedPath = null; }
+        if (this.remainingPath) { this.remainingPath.remove(); this.remainingPath = null; }
+
+        this.showStazioniRegione(rfi);
+        this.showTreniRegione(res.treni);
+        this.avviaAnimazione();
+
+        const bounds = this.regioneStazioniLayer.getBounds();
+        if (bounds.isValid()) {
+          this.map.fitBounds(bounds, { paddingTopLeft: this.overlayPadding, paddingBottomRight: [50, 50], animate: true, maxZoom: 10 });
+        }
+      },
+      error: () => alert('Errore nel caricamento dei treni della regione')
+    });
+  }
+
+  private showStazioniRegione(rfi: number) {
+    this.regioneStazioniLayer.clearLayers();
+    const filtered = this.stazioni.filter(s => s.regione === rfi);
+    for (const s of filtered) {
+      if (!s.lat || !s.lon) continue;
+      const r = this.isMobile() ? 8 : 5;
+      const marker = L.circleMarker([s.lat, s.lon], {
+        radius: r,
+        color: '#2563eb',
+        fillColor: '#2563eb',
+        fillOpacity: 0.8,
+        weight: 1,
+      });
+      marker.on('click', () => {
+        this.selectedTrain.set(null);
+        this.selectedStation.set({
+          nomeLungo: s.nome,
+          nomeBreve: s.nome_breve,
+          label: null,
+          id: s.id
+        });
+        this.showSearch.set(false);
+        if (this.isMobile()) this.sidebarOpen.set(true);
+      });
+      this.regioneStazioniLayer.addLayer(marker);
+    }
+    this.regioneStazioniLayer.addTo(this.map);
+  }
+
+  private showTreniRegione(treni: TrenoRegione[]) {
+    this.treniRegioneLayer.clearLayers();
+    this.treniAnimati = [];
+
+    for (const t of treni) {
+      if (!t.circolante && t.nonPartito) continue;
+
+      const origStaz = this.stazioni.find(s => s.id === t.codOrigine);
+      if (!origStaz || !origStaz.lat || !origStaz.lon) continue;
+      const origine: [number, number] = [origStaz.lat, origStaz.lon];
+
+      const destName = t.destinazione?.toLowerCase().trim() || '';
+      let destinazione: [number, number] | null = null;
+      if (destName) {
+        const destStaz = this.stazioni.find(s =>
+          s.nome.toLowerCase().trim() === destName ||
+          (s.nome_breve && s.nome_breve.toLowerCase().trim() === destName)
+        );
+        if (destStaz && destStaz.lat && destStaz.lon) {
+          destinazione = [destStaz.lat, destStaz.lon];
+        }
+      }
+
+      const angle = calculateAngle(origine, destinazione || origine);
+      const icon = this.createTrainIcon(angle);
+
+      const marker = L.marker(origine, { icon });
+      marker.bindPopup(this.popupTreno(t));
+
+      marker.on('click', () => {
+        this.onStationTrainClick({ num: t.numeroTreno, codOrigine: t.codOrigine });
+      });
+
+      marker.addTo(this.treniRegioneLayer);
+      this.treniAnimati.push({ marker, partenza: t, origineCoords: origine, destinazioneCoords: destinazione, direction: angle });
+    }
+
+    this.treniRegioneLayer.addTo(this.map);
+  }
+
+  private popupTreno(t: TrenoRegione): string {
+    const ritardo = t.ritardo > 0 ? `Ritardo: ${t.ritardo} min` : 'In orario';
+    return `<b>${t.categoria} ${t.numeroTreno}</b><br/>${t.origine || ''} → ${t.destinazione || ''}<br/>${ritardo}`;
+  }
+
+  private createTrainIcon(angle: number): L.DivIcon {
+    return L.divIcon({
+      className: '',
+      html: `<div class="train-marker-icon" style="transform:rotate(${angle}deg)">
+        <svg width="22" height="22" viewBox="0 0 22 22">
+          <circle cx="11" cy="11" r="9" fill="#2563eb" stroke="#fff" stroke-width="2"/>
+          <polygon points="11,3 16,12 6,12" fill="#fff"/>
+        </svg>
+      </div>`,
+      iconSize: [22, 22],
+      iconAnchor: [11, 11],
+    });
+  }
+
+  private avviaAnimazione() {
+    this.animInterval = setInterval(() => {
+      const now = Date.now();
+      for (const t of this.treniAnimati) {
+        if (!t.destinazioneCoords) continue;
+        const p = t.partenza;
+        if (p.arrivato) continue;
+        if (p.nonPartito) continue;
+
+        const durata = (p.orarioArrivo || now) - (p.orarioPartenza || now);
+        const elapsed = now - (p.orarioPartenza || now) + p.ritardo * 60000;
+        const progress = durata > 0 ? Math.max(0, Math.min(1, elapsed / durata)) : 0;
+
+        const lat = t.origineCoords[0] + (t.destinazioneCoords[0] - t.origineCoords[0]) * progress;
+        const lon = t.origineCoords[1] + (t.destinazioneCoords[1] - t.origineCoords[1]) * progress;
+
+        if (progress > 0 && progress < 1) {
+          const angle = calculateAngle(
+            [lat, lon],
+            t.destinazioneCoords
+          );
+          t.marker.setLatLng([lat, lon]);
+          t.marker.setIcon(this.createTrainIcon(angle));
+        }
+      }
+    }, 1000);
+  }
+
+  private stopAnimazione() {
+    if (this.animInterval) {
+      clearInterval(this.animInterval);
+      this.animInterval = null;
+    }
+    if (this.regioneRefreshInterval) {
+      clearInterval(this.regioneRefreshInterval);
+      this.regioneRefreshInterval = null;
+    }
+  }
+
+  resetRegion() {
+    this.stopAnimazione();
+    this.regionFilterActive.set(false);
+    this.regionName.set('');
+    this.regioneRfi = 0;
+    this.treniAnimati = [];
+    this.treniRegioneLayer.clearLayers();
+    this.regioneStazioniLayer.clearLayers();
+    if (this.map.hasLayer(this.treniRegioneLayer)) this.treniRegioneLayer.remove();
+    if (this.map.hasLayer(this.regioneStazioniLayer)) this.regioneStazioniLayer.remove();
+    this.showSearch.set(true);
+    this.selectedTrain.set(null);
+    this.selectedStation.set(null);
+    this.searchComp()?.reset();
+    if (!this.map.hasLayer(this.stazioniLayer)) {
+      this.stazioniLayer.addTo(this.map);
+    }
+  }
+
+  private resetAllInner() {
+    this.stopRefresh();
+    this.selectedTrain.set(null);
+    this.selectedStation.set(null);
+    this.searchComp()?.reset();
   }
 
   private flyToStation(id: string) {
@@ -538,4 +743,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
     return lastPassed;
   }
+}
+
+function calculateAngle(from: [number, number], to: [number, number]): number {
+  const dy = to[0] - from[0];
+  const dx = to[1] - from[1];
+  return Math.atan2(dx, dy) * (180 / Math.PI);
 }

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Stazione, CercaStazione } from '../models/stazione';
-import { DettaglioTreno, DisambiguaTreno, Partenza } from '../models/treno';
+import { DettaglioTreno, DisambiguaTreno, Partenza, TreniRegioneResponse } from '../models/treno';
 
 function isDev(): boolean {
   const host = window.location.host;
@@ -49,5 +49,11 @@ export class ApiService {
     const params: any = { num, orig: codOrigine };
     if (data) params.data = data;
     return this.http.get<DettaglioTreno>(endpoint('treno'), { params });
+  }
+
+  getTreniRegione(regione: number, limit = 30): Observable<TreniRegioneResponse> {
+    return this.http.get<TreniRegioneResponse>(endpoint('treni-regione'), {
+      params: { regione: String(regione), limite: String(limit), refresh: 'force' }
+    });
   }
 }

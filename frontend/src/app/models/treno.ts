@@ -60,3 +60,21 @@ export interface Partenza {
   binarioEffettivoPartenzaDescrizione: string | null;
   compRitardo: string[];
 }
+
+export interface TrenoRegione extends Partenza {
+  circolante: boolean;
+  nonPartito: boolean;
+  arrivato: boolean;
+  ultimoRilev: number | null;
+  compRitardoAndamento: string[];
+  compNumeroTreno?: string;
+  stazionePartenza?: string | null;
+  stazioneArrivo?: string | null;
+}
+
+export interface TreniRegioneResponse {
+  regione: number;
+  nomeRegione: string;
+  timestamp: string;
+  treni: TrenoRegione[];
+}
