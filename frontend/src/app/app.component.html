@@ -25,7 +25,7 @@
         </div>
         @if (showSearch()) {
           <div class="sidebar-top">
-            <app-search #searchComp (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" />
+          <app-search #searchCompDesktop (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" />
           </div>
         }
         <div class="sidebar-middle">
@@ -41,7 +41,9 @@
     <div class="map-container" #mapContainer></div>
 
     @if (!isMobile() && (showSearch() || selectedStation() || selectedTrain())) {
-      <div class="aa-backdrop" (click)="resetAll()"></div>
+      @if (!showSearch()) {
+        <div class="aa-backdrop" (click)="resetAll()"></div>
+      }
       <div class="aa-overlay">
         @if (showSearch()) {
           <app-search #searchComp (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" />
