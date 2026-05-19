@@ -1,11 +1,11 @@
-.train-detail { padding: 10px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
+:host { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 10px; box-sizing: border-box; }
 .train-detail-top { flex: 0 0 auto; }
 .train-detail-list { flex: 1; overflow-y: auto; }
 .header { margin-bottom: 10px; }
 h3 { margin: 0; font-size: 16px; display: flex; align-items: center; }
 .h3-spacer { flex: 1; }
 .countdown-indicator { display: inline-flex; align-items: center; margin-left: 8px; }
-.h4-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; position: sticky; top: 0; background: #fff; z-index: 1; padding: 4px 0; }
+.h4-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 4px 0; }
 h4 { margin: 0; font-size: 13px; color: #666; text-transform: uppercase; }
 .reset-btn { background: none; border: none; cursor: pointer; font-size: 14px; color: #9ca3af; padding: 2px 4px; line-height: 1; border-radius: 4px; }
 .reset-btn:hover { color: #4b5563; background: #f3f4f6; }

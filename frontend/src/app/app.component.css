@@ -163,7 +163,9 @@
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.18);
   z-index: 501;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 12px;
   animation: aaSlideUp 0.25s ease-out;
 }
