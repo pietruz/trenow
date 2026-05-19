@@ -342,7 +342,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
       const origStaz = this.stazioni.find(s => s.id === t.codOrigine);
       if (!origStaz || !origStaz.lat || !origStaz.lon) continue;
-      const origine: [number, number] = [origStaz.lat, origStaz.lon];
+      const origine: [number, number] = [Number(origStaz.lat), Number(origStaz.lon)];
 
       const destName = t.destinazione?.toLowerCase().trim() || '';
       let destinazione: [number, number] | null = null;
@@ -352,7 +352,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
           (s.nome_breve && s.nome_breve.toLowerCase().trim() === destName)
         );
         if (destStaz && destStaz.lat && destStaz.lon) {
-          destinazione = [destStaz.lat, destStaz.lon];
+          destinazione = [Number(destStaz.lat), Number(destStaz.lon)];
         }
       }
 
