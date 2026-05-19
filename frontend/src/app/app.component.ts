@@ -141,7 +141,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       zoomControl: false,
     });
 
-    L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+    L.control.zoom({ position: this.isMobile() ? 'bottomleft' : 'bottomright' }).addTo(this.map);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
