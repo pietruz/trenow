@@ -75,7 +75,7 @@
           </h3>
           <div class="to-route">
             <span>{{ t.origine }} → {{ t.destinazione }}</span>
-            @if (isMobile() && !sidebarOpen()) {
+            @if (isMobile()) {
               <button class="to-info-btn" (click)="openTrainDetail()" title="Dettaglio treno">ⓘ</button>
             }
           </div>
