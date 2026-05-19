@@ -30,7 +30,7 @@
         }
         <div class="sidebar-middle">
           @if (selectedTrain()) {
-            <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="list" (onCloseSidebar)="closeSidebarMobile()" />
+            <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="list" (onCloseSidebar)="showTrainSearch()" />
           }
           @if (selectedStation()) {
             <app-station-panel [stazione]="selectedStation()!" (onTrainClick)="onStationTrainClick($event)" (onReset)="resetAll()" />
@@ -48,7 +48,7 @@
         @if (showSearch()) {
           <app-search #searchComp (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" />
         } @else if (selectedTrain()) {
-          <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="list" (onCloseSidebar)="resetAll()" />
+          <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="list" (onCloseSidebar)="showTrainSearch()" />
         } @else if (selectedStation()) {
           <app-station-panel [stazione]="selectedStation()!" (onTrainClick)="onStationTrainClick($event)" (onReset)="resetAll()" />
         }

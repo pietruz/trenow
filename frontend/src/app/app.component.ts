@@ -103,6 +103,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  showTrainSearch() {
+    this.showSearch.set(true);
+  }
+
   closeSidebarMobile() {
     if (this.isMobile()) {
       this.sidebarOpen.set(false);
