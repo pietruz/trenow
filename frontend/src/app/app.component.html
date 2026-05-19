@@ -44,14 +44,16 @@
       @if (!showSearch()) {
         <div class="aa-backdrop" (click)="showTrainSearch()"></div>
       }
-      <div class="aa-overlay">
-        @if (showSearch()) {
-          <app-search #searchComp (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" />
-        } @else if (selectedTrain()) {
-          <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="list" (onCloseSidebar)="showTrainSearch()" />
-        } @else if (selectedStation()) {
-          <app-station-panel [stazione]="selectedStation()!" (onTrainClick)="onStationTrainClick($event)" (onReset)="resetAll()" />
-        }
+      <div class="aa-overlay" (click)="showTrainSearch()">
+        <div (click)="$event.stopPropagation()">
+          @if (showSearch()) {
+            <app-search #searchComp (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" />
+          } @else if (selectedTrain()) {
+            <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="list" (onCloseSidebar)="showTrainSearch()" />
+          } @else if (selectedStation()) {
+            <app-station-panel [stazione]="selectedStation()!" (onTrainClick)="onStationTrainClick($event)" (onReset)="resetAll()" />
+          }
+        </div>
       </div>
     }
 
