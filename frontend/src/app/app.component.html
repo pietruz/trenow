@@ -73,7 +73,12 @@
             }
             <button class="close-btn" (click)="resetAll()" title="Chiudi">✕</button>
           </h3>
-          <span class="to-route">{{ t.origine }} → {{ t.destinazione }}</span>
+          <div class="to-route">
+            <span>{{ t.origine }} → {{ t.destinazione }}</span>
+            @if (!isMobile() && showSearch()) {
+              <button class="to-info-btn" (click)="openTrainDetail()" title="Dettaglio treno">ⓘ</button>
+            }
+          </div>
           @if (t.compRitardo.length > 0) {
             <span class="to-ritardo" [class.in-orario]="isTrainOnTime(t)" [class.ritardo-alto]="isTrainRitardoAlto(t)">
               {{ t.compRitardo[0] }}
