@@ -11,7 +11,7 @@ function isDev(): boolean {
 
 function getApiBase(): string {
   if (isDev()) return 'http://localhost:8080/api';
-  return '/tracker/api';
+  return '/trenow/api';
 }
 
 function endpoint(path: string): string {
