@@ -64,7 +64,7 @@
     border-radius: 2px;
     background: #d1d5db;
   }
-  .overlay {
+  .mobile-overlay {
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.25);
@@ -73,7 +73,7 @@
     pointer-events: none;
     transition: opacity 0.3s ease-out;
   }
-  .overlay.visible {
+  .mobile-overlay.visible {
     opacity: 1;
     pointer-events: auto;
   }
@@ -146,6 +146,31 @@
 
 .app-container { display: flex; flex: 1; width: 100%; position: relative; overflow: hidden; }
 .map-container { flex: 1; }
+
+.aa-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 500;
+}
+.aa-overlay {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  width: 380px;
+  max-height: calc(100dvh - 80px);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  z-index: 501;
+  overflow-y: auto;
+  padding: 12px;
+  animation: aaSlideUp 0.25s ease-out;
+}
+@keyframes aaSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 .settings-overlay {
   position: fixed;

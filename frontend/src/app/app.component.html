@@ -17,28 +17,41 @@
     </button>
   </header>
 
-  <div class="app-container" [class.mobile]="isMobile()">
-    <div class="sidebar" [class.open]="sidebarOpen()">
-      @if (isMobile()) {
+  <div class="app-container">
+    @if (isMobile()) {
+      <div class="sidebar" [class.open]="sidebarOpen()">
         <div class="drag-handle" (touchstart)="onTouchStart($event)" (touchmove)="onTouchMove($event)" (touchend)="onTouchEnd()">
           <div class="drag-bar"></div>
         </div>
-      }
-      @if (showSearch()) {
-        <div class="sidebar-top">
-          <app-search #searchComp (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" />
-        </div>
-      }
-      <div class="sidebar-middle">
-        @if (selectedTrain()) {
-          <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="list" (onCloseSidebar)="closeSidebarMobile()" />
+        @if (showSearch()) {
+          <div class="sidebar-top">
+            <app-search #searchComp (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" />
+          </div>
         }
-        @if (selectedStation()) {
+        <div class="sidebar-middle">
+          @if (selectedTrain()) {
+            <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="list" (onCloseSidebar)="closeSidebarMobile()" />
+          }
+          @if (selectedStation()) {
+            <app-station-panel [stazione]="selectedStation()!" (onTrainClick)="onStationTrainClick($event)" (onReset)="resetAll()" />
+          }
+        </div>
+      </div>
+    }
+    <div class="map-container" #mapContainer></div>
+
+    @if (!isMobile() && (showSearch() || selectedStation() || selectedTrain())) {
+      <div class="aa-backdrop" (click)="resetAll()"></div>
+      <div class="aa-overlay">
+        @if (showSearch()) {
+          <app-search #searchComp (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" />
+        } @else if (selectedTrain()) {
+          <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="list" (onCloseSidebar)="resetAll()" />
+        } @else if (selectedStation()) {
           <app-station-panel [stazione]="selectedStation()!" (onTrainClick)="onStationTrainClick($event)" (onReset)="resetAll()" />
         }
       </div>
-    </div>
-    <div class="map-container" #mapContainer></div>
+    }
 
     @if (selectedTrain(); as t) {
       <div class="train-overlay">
@@ -78,7 +91,7 @@
 
     @if (isMobile()) {
       <button class="fab" (click)="toggleSidebar()">{{ selectedTrain() ? (sidebarOpen() ? '✕' : 'i') : (sidebarOpen() ? '✕' : '🔍') }}</button>
-      <div class="overlay" [class.visible]="sidebarOpen()" (click)="toggleSidebar()"></div>
+      <div class="mobile-overlay" [class.visible]="sidebarOpen()" (click)="toggleSidebar()"></div>
     }
   </div>
 
