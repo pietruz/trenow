@@ -97,6 +97,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.sidebarOpen.update(v => !v);
   }
 
+  openTrainDetail() {
+    if (this.isMobile()) {
+      this.sidebarOpen.set(true);
+    }
+  }
+
   closeSidebarMobile() {
     if (this.isMobile()) {
       this.sidebarOpen.set(false);

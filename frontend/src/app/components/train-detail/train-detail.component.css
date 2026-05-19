@@ -36,6 +36,4 @@ h4 { margin: 0; font-size: 13px; color: #666; text-transform: uppercase; }
   .fermata-nome { font-size: 15px; }
 }
 
-@media (min-width: 769px) {
-  .reset-btn { display: none; }
-}
+
