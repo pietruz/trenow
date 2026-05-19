@@ -1,5 +1,8 @@
 # TreNow — Monitoraggio Treni in Tempo Reale
 
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/54bfc61b-ed01-45f9-bf41-0762b5761c06" />
+
+
 ## 1. Panoramica Funzionale
 
 **TreNow** è un'applicazione web per monitorare i treni in tempo reale in Italia su mappa interattiva, usando le API pubbliche di **Viaggiatreno** (RFI).
