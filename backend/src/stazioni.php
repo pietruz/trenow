@@ -3,6 +3,11 @@
 require_once __DIR__ . '/config.php';
 
 $db = getDB();
+if (!$db) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Database non disponibile']);
+    exit;
+}
 
 $stmt = $db->query("SELECT COUNT(*) as cnt FROM stazioni");
 $count = $stmt->fetch()['cnt'];

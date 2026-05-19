@@ -73,7 +73,7 @@ if ($dettaglio === null) {
 }
 
 $db = getDB();
-if (isset($dettaglio['fermate']) && is_array($dettaglio['fermate'])) {
+if ($db && isset($dettaglio['fermate']) && is_array($dettaglio['fermate'])) {
     $stmt = $db->prepare("SELECT id, lat, lon FROM stazioni WHERE id = ?");
 
     foreach ($dettaglio['fermate'] as &$fermata) {

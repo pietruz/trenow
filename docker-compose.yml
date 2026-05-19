@@ -17,6 +17,11 @@ services:
 
   php:
     build: ./backend
+    environment:
+      DB_HOST: db
+      DB_USER: trainuser
+      DB_PASS: trainpass
+      DB_NAME: train_tracker
     volumes:
       - ./backend/src:/var/www/html
     depends_on:

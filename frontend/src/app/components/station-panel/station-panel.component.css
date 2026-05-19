@@ -1,0 +1,25 @@
+.station-panel { padding: 10px; }
+h3 { margin: 0 0 10px; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
+.reset-btn { background: none; border: none; cursor: pointer; font-size: 14px; color: #9ca3af; padding: 2px 4px; line-height: 1; border-radius: 4px; }
+.reset-btn:hover { color: #4b5563; background: #f3f4f6; }
+.tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.tabs button { flex: 1; padding: 6px; border: 1px solid #ccc; background: #f9fafb; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.tabs button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+.train-list { max-height: 400px; overflow-y: auto; }
+.train-item { padding: 8px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+.train-item:hover { background: #f9fafb; }
+.train-header { display: flex; justify-content: space-between; font-size: 13px; }
+.train-num { font-weight: 600; }
+.train-dest { color: #666; }
+.train-orari { display: flex; gap: 8px; align-items: center; margin-top: 4px; font-size: 12px; }
+.orario { font-weight: 600; color: #059669; }
+.ritardo { padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; background: #fee2e2; color: #991b1b; }
+.ritardo.negativo { background: #d1fae5; color: #065f46; }
+.binario { font-size: 11px; color: #888; margin-top: 2px; }
+.empty { padding: 20px; text-align: center; color: #888; font-size: 13px; }
+
+@media (max-width: 768px) {
+  .train-item { padding: 10px 8px; min-height: 44px; }
+  .train-header { font-size: 14px; }
+  .tabs button { padding: 10px 6px; min-height: 44px; font-size: 14px; }
+}

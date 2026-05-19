@@ -4,10 +4,14 @@ require_once __DIR__ . '/config.php';
 
 try {
     $db = getDB();
-    $stmt = $db->query("SELECT COUNT(*) as cnt FROM stazioni");
-    $count = $stmt->fetch()['cnt'];
-    $dbStatus = "ok, $count stazioni";
-} catch (Exception $e) {
+    if (!$db) {
+        $dbStatus = 'errore: database non raggiungibile';
+    } else {
+        $stmt = $db->query("SELECT COUNT(*) as cnt FROM stazioni");
+        $count = $stmt->fetch()['cnt'];
+        $dbStatus = "ok, $count stazioni";
+    }
+} catch (Throwable $e) {
     $dbStatus = 'errore: ' . $e->getMessage();
 }
 

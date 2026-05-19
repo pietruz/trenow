@@ -1,0 +1,39 @@
+<div class="search-panel">
+  <div class="input-row">
+    <div class="input-wrap">
+      <input
+        [(ngModel)]="query"
+        (keyup.enter)="search($event)"
+        [placeholder]="searchType() === 'treno' ? 'Cerca treno (es. 2107)' : 'Nome stazione'"
+      />
+      @if (query) {
+        <button class="clear-btn" (click)="reset()" tabindex="-1">✕</button>
+      }
+    </div>
+  </div>
+
+  <div class="toggle">
+    <button [class.active]="searchType() === 'stazione'" (click)="setType('stazione')">Stazione</button>
+    <button [class.active]="searchType() === 'treno'" (click)="setType('treno')">Treno</button>
+  </div>
+
+  @if (searchType() === 'treno' && disambigua.length > 0) {
+    <div class="results-list">
+      @for (d of disambigua; track d.codiceOrigine) {
+        <div class="result-item" (click)="selectDisambigua(d)">
+          {{ d.origine }}
+        </div>
+      }
+    </div>
+  }
+
+  @if (searchType() === 'stazione' && stationResults.length > 0) {
+    <div class="results-list">
+      @for (s of stationResults; track s.id) {
+        <div class="result-item" (click)="selectStation(s)">
+          {{ s.nomeLungo }}
+        </div>
+      }
+    </div>
+  }
+</div>

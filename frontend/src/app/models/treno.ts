@@ -28,6 +28,9 @@ export interface DettaglioTreno {
   compRitardo: string[];
   compRitardoAndamento: string[];
   tipoTreno: string;
+  categoria?: string;
+  categoriaDescrizione?: string;
+  compNumeroTreno?: string;
   provvedimento: number;
   subTitle: string | null;
   stazioneUltimoRilevamento: string | null;

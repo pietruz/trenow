@@ -1,0 +1,73 @@
+@if (treno()) {
+  <div class="train-detail">
+    @if (mode() === 'full') {
+      <div class="train-detail-top">
+        <div class="header">
+          <h3>
+            <span>{{ treno().categoriaDescrizione || (treno().categoria | tipoTrenoLabel : treno().compNumeroTreno) || (treno().tipoTreno | tipoTrenoLabel) }} {{ treno().numeroTreno }}</span>
+            <span class="h3-spacer"></span>
+            @if (refreshCountdown() > 0) {
+              <span class="countdown-indicator" [title]="'Prossimo aggiornamento tra ' + refreshCountdown() + 's'">
+                <svg width="14" height="14" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e7eb" stroke-width="4" />
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="#2563eb" stroke-width="4"
+                    [attr.stroke-dasharray]="countdownOffset() + ', 94.25'"
+                    stroke-linecap="round"
+                    transform="rotate(-90 18 18)" />
+                </svg>
+              </span>
+            }
+          </h3>
+          <span class="route">{{ treno().origine }} → {{ treno().destinazione }}</span>
+          @if (treno().compRitardo.length > 0) {
+            <span class="ritardo" [class.in-orario]="isOnTime()" [class.ritardo-alto]="isRitardoAlto()">
+              {{ treno().compRitardo[0] }}
+            </span>
+          }
+        </div>
+
+        @if (treno().subTitle) {
+          <div class="subtitle">{{ treno().subTitle }}</div>
+        }
+
+        @if (treno().stazioneUltimoRilevamento && treno().stazioneUltimoRilevamento !== '--') {
+          <div class="rilevamento">
+            Ultimo rilevamento: <strong>{{ treno().stazioneUltimoRilevamento }}</strong>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="h4-row">
+      <h4>Fermate</h4>
+      <button class="reset-btn" (click)="onCloseSidebar.emit()" title="Chiudi">✕</button>
+    </div>
+    <div class="train-detail-list">
+      @for (f of treno().fermate; track $index) {
+        <div class="fermata" [class.soppressa]="f.actualFermataType === 3" [class.passata]="isPassata(f)" [id]="'fermata-' + $index">
+          <div class="fermata-info">
+            <span class="fermata-nome">{{ f.stazione }}</span>
+            @if (f.binarioEffettivoPartenzaDescrizione) {
+              <span class="fermata-binario">Bin: {{ f.binarioEffettivoPartenzaDescrizione }}</span>
+            }
+          </div>
+          <div class="fermata-orari">
+            <span class="orari-left">
+              @if (f.partenza_teorica) {
+                <span class="teorico">{{ f.partenza_teorica | date:'HH:mm' }}</span>
+              }
+              @if (f.partenzaReale) {
+                <span class="reale" [class.in-orario]="f.ritardoPartenza! <= 1" [class.ritardo]="f.ritardoPartenza! > 1">
+                  {{ f.partenzaReale | date:'HH:mm' }}
+                </span>
+              }
+            </span>
+            @if (f.ritardo !== 0) {
+              <span class="ritardo-badge" [class.ok]="f.ritardo <= 1" [class.ko]="f.ritardo > 1">{{ f.ritardo }} min</span>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}

@@ -1,4 +1,13 @@
 @import 'leaflet/dist/leaflet.css';
 
+:root {
+  --safe-inset-top: env(safe-area-inset-top, 0px);
+  --safe-inset-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overscroll-behavior: none;
+}
+* { touch-action: manipulation; }

@@ -1,0 +1,41 @@
+@if (stazione()) {
+  <div class="station-panel">
+    <h3>
+      <span>{{ stazione().nomeLungo }}</span>
+      <button class="reset-btn" (click)="onReset.emit()" title="Chiudi">✕</button>
+    </h3>
+
+    <div class="tabs">
+      <button [class.active]="tab() === 'partenze'" (click)="tab.set('partenze')">Partenze</button>
+      <button [class.active]="tab() === 'arrivi'" (click)="tab.set('arrivi')">Arrivi</button>
+    </div>
+
+    <div class="train-list">
+      @for (t of treni(); track t.numeroTreno + t.codOrigine + t.orarioPartenza) {
+        <div class="train-item" (click)="selectTrain(t)">
+          <div class="train-header">
+            <span class="train-num">{{ t.categoriaDescrizione }} {{ t.numeroTreno }}</span>
+            <span class="train-dest">{{ tab() === 'arrivi' ? (t.origine || '?') : t.destinazione }}</span>
+          </div>
+          <div class="train-orari">
+            <span class="orario">
+              {{ (tab() === 'partenze' ? t.orarioPartenza : t.orarioArrivo) | date:'HH:mm' }}
+            </span>
+            @if (t.ritardo !== 0) {
+              <span class="ritardo" [class.negativo]="t.ritardo < 0">
+                {{ t.ritardo > 0 ? '+' : '' }}{{ t.ritardo }} min
+              </span>
+            }
+          </div>
+          @if (t.binarioEffettivoPartenzaDescrizione || t.binarioProgrammatoPartenzaDescrizione) {
+            <div class="binario">
+              Bin: {{ t.binarioEffettivoPartenzaDescrizione || t.binarioProgrammatoPartenzaDescrizione }}
+            </div>
+          }
+        </div>
+      } @empty {
+        <div class="empty">Nessun treno trovato</div>
+      }
+    </div>
+  </div>
+}
