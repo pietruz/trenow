@@ -41,9 +41,6 @@
     <div class="map-container" #mapContainer></div>
 
     @if (!isMobile() && (showSearch() || selectedStation() || selectedTrain())) {
-      @if (!showSearch()) {
-        <div class="aa-backdrop" (click)="showTrainSearch()"></div>
-      }
       <div class="aa-overlay" (click)="showTrainSearch()">
         <div (click)="$event.stopPropagation()">
           @if (showSearch()) {
