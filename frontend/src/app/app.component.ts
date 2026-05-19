@@ -4,16 +4,25 @@ import { TrainDetailComponent } from './components/train-detail/train-detail.com
 import { StationPanelComponent } from './components/station-panel/station-panel.component';
 import { ApiService } from './services/api.service';
 import { Stazione, CercaStazione } from './models/stazione';
-import { DettaglioTreno, TrenoRegione } from './models/treno';
+import { DettaglioTreno, TrenoRegione, Fermata } from './models/treno';
 import { TipoTrenoLabelPipe } from './pipes/tipo-treno.pipe';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import * as L from 'leaflet';
 
+const TRAIN_COLORS = [
+  '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
+  '#ffff33', '#a65628', '#f781bf', '#999999', '#66c2a5',
+  '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854', '#ffd92f',
+  '#e5c494', '#b3b3b3', '#8dd3c7', '#ffffb3', '#bebada',
+];
+
 interface TrenoAnimato {
-  marker: L.Marker;
+  marker: L.CircleMarker;
+  polyline: L.Polyline;
   partenza: TrenoRegione;
-  origineCoords: [number, number];
-  destinazioneCoords: [number, number] | null;
-  direction: number;
+  fermate: Fermata[];
+  colore: string;
 }
 
 @Component({
@@ -82,11 +91,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private savedMapCenter: L.LatLng | null = null;
   private savedMapZoom: number | null = null;
   /* regione */
-  private regioneStazioniLayer!: L.FeatureGroup;
   private treniRegioneLayer!: L.LayerGroup;
   private treniAnimati: TrenoAnimato[] = [];
   private animInterval: ReturnType<typeof setInterval> | null = null;
-  private regioneRefreshInterval: ReturnType<typeof setInterval> | null = null;
   private regioneRfi = 0;
 
   constructor(private api: ApiService) {
@@ -167,7 +174,6 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
     this.markersLayer = L.layerGroup().addTo(this.map);
     this.stazioniLayer = L.layerGroup();
-    this.regioneStazioniLayer = L.featureGroup();
     this.treniRegioneLayer = L.layerGroup();
 
     this.requestGeolocation();
@@ -248,9 +254,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (this.isMobile()) {
       this.sidebarOpen.set(false);
     }
+
+    if (this.regionFilterActive()) {
+      this.stopAnimazione();
+      this.treniAnimati = [];
+      this.treniRegioneLayer.clearLayers();
+      if (this.map.hasLayer(this.treniRegioneLayer)) this.treniRegioneLayer.remove();
+    }
+
     const lastPassed = this.showTrainPath(treno);
     this.stazioniLayer.remove();
-    if (this.map.hasLayer(this.regioneStazioniLayer)) this.regioneStazioniLayer.remove();
 
     const isCancelled = treno.provvedimento !== 0 ||
       (!!treno.subTitle && treno.subTitle.toLowerCase().includes('cancellat'));
@@ -279,7 +292,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.resetAllInner();
     this.regioneRfi = rfi;
 
-    this.api.getTreniRegione(rfi).subscribe({
+    this.api.getTreniRegione(rfi, 15).subscribe({
       next: (res) => {
         this.regionName.set(res.nomeRegione);
         this.regionFilterActive.set(true);
@@ -287,90 +300,91 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
         this.stazioniLayer.remove();
         this.markersLayer.remove();
-
+        this.treniRegioneLayer.clearLayers();
         if (this.completedPath) { this.completedPath.remove(); this.completedPath = null; }
         if (this.remainingPath) { this.remainingPath.remove(); this.remainingPath = null; }
 
-        this.showStazioniRegione(rfi);
-        this.showTreniRegione(res.treni);
-        this.avviaAnimazione();
+        const obs = res.treni.slice(0, 15).map(t =>
+          this.api.getAndamentoTreno(String(t.numeroTreno), t.codOrigine).pipe(
+            catchError(() => of(null))
+          )
+        );
 
-        const bounds = this.regioneStazioniLayer.getBounds();
-        if (bounds.isValid()) {
-          this.map.fitBounds(bounds, { paddingTopLeft: this.overlayPadding, paddingBottomRight: [50, 50], animate: true, maxZoom: 10 });
-        }
+        if (obs.length === 0) return;
+
+        forkJoin(obs).subscribe({
+          next: (details) => {
+            const valid = details.filter((d): d is DettaglioTreno => d !== null && !!d.fermate?.length);
+            this.disegnaTracciatiRegione(valid, res.treni);
+          }
+        });
       },
       error: () => alert('Errore nel caricamento dei treni della regione')
     });
   }
 
-  private showStazioniRegione(rfi: number) {
-    this.regioneStazioniLayer.clearLayers();
-    const filtered = this.stazioni.filter(s => s.regione === rfi);
-    for (const s of filtered) {
-      if (!s.lat || !s.lon) continue;
-      const r = this.isMobile() ? 8 : 5;
-      const marker = L.circleMarker([s.lat, s.lon], {
-        radius: r,
-        color: '#2563eb',
-        fillColor: '#2563eb',
-        fillOpacity: 0.8,
-        weight: 1,
-      });
-      marker.on('click', () => {
-        this.selectedTrain.set(null);
-        this.selectedStation.set({
-          nomeLungo: s.nome,
-          nomeBreve: s.nome_breve,
-          label: null,
-          id: s.id
-        });
-        this.showSearch.set(false);
-        if (this.isMobile()) this.sidebarOpen.set(true);
-      });
-      this.regioneStazioniLayer.addLayer(marker);
-    }
-    this.regioneStazioniLayer.addTo(this.map);
-  }
-
-  private showTreniRegione(treni: TrenoRegione[]) {
+  private disegnaTracciatiRegione(dettagli: DettaglioTreno[], treniReg: TrenoRegione[]) {
     this.treniRegioneLayer.clearLayers();
     this.treniAnimati = [];
+    const bounds = L.latLngBounds([]);
 
-    for (const t of treni) {
-      if (!t.circolante && t.nonPartito) continue;
+    for (let i = 0; i < dettagli.length; i++) {
+      const dett = dettagli[i];
+      const treg = treniReg[i];
 
-      const origStaz = this.stazioni.find(s => s.id === t.codOrigine);
-      if (!origStaz || !origStaz.lat || !origStaz.lon) continue;
-      const origine: [number, number] = [Number(origStaz.lat), Number(origStaz.lon)];
+      const fermate = dett.fermate.filter(f => f.actualFermataType !== 3 && f.lat && f.lon);
+      if (fermate.length < 2) continue;
 
-      const destName = t.destinazione?.toLowerCase().trim() || '';
-      let destinazione: [number, number] | null = null;
-      if (destName) {
-        const destStaz = this.stazioni.find(s =>
-          s.nome.toLowerCase().trim() === destName ||
-          (s.nome_breve && s.nome_breve.toLowerCase().trim() === destName)
-        );
-        if (destStaz && destStaz.lat && destStaz.lon) {
-          destinazione = [Number(destStaz.lat), Number(destStaz.lon)];
-        }
-      }
+      const colore = TRAIN_COLORS[i % TRAIN_COLORS.length];
+      const coords: [number, number][] = fermate.map(f => [f.lat!, f.lon!]);
 
-      const angle = calculateAngle(origine, destinazione || origine);
-      const icon = this.createTrainIcon(angle);
+      coords.forEach(c => bounds.extend(c));
 
-      const marker = L.marker(origine, { icon });
-      marker.bindPopup(this.popupTreno(t));
+      const polyline = L.polyline(coords, {
+        color: colore,
+        weight: 3,
+        opacity: 0.8,
+      }).addTo(this.treniRegioneLayer);
 
-      marker.on('click', () => {
-        this.onStationTrainClick({ num: t.numeroTreno, codOrigine: t.codOrigine });
+      polyline.on('click', () => {
+        this.onTrainSelected(dett);
       });
 
+      const posIniziale = coords[0];
+      const marker = L.circleMarker(posIniziale, {
+        radius: 7,
+        color: colore,
+        fillColor: colore,
+        fillOpacity: 0.9,
+        weight: 2,
+      });
+      marker.bindPopup(this.popupTreno(treg));
+      marker.on('click', () => {
+        this.onTrainSelected(dett);
+      });
       marker.addTo(this.treniRegioneLayer);
-      this.treniAnimati.push({ marker, partenza: t, origineCoords: origine, destinazioneCoords: destinazione, direction: angle });
+
+      this.treniAnimati.push({
+        marker,
+        polyline,
+        partenza: treg,
+        fermate,
+        colore,
+      });
     }
 
     this.treniRegioneLayer.addTo(this.map);
+
+    if (bounds.isValid()) {
+      this.map.fitBounds(bounds, {
+        paddingTopLeft: this.overlayPadding,
+        paddingBottomRight: [50, 50],
+        animate: true,
+        maxZoom: 10,
+      });
+    }
+
+    this.avviaAnimazione();
   }
 
   private popupTreno(t: TrenoRegione): string {
@@ -378,44 +392,43 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     return `<b>${t.categoria} ${t.numeroTreno}</b><br/>${t.origine || ''} → ${t.destinazione || ''}<br/>${ritardo}`;
   }
 
-  private createTrainIcon(angle: number): L.DivIcon {
-    return L.divIcon({
-      className: '',
-      html: `<div class="train-marker-icon" style="transform:rotate(${angle}deg)">
-        <svg width="22" height="22" viewBox="0 0 22 22">
-          <circle cx="11" cy="11" r="9" fill="#2563eb" stroke="#fff" stroke-width="2"/>
-          <polygon points="11,3 16,12 6,12" fill="#fff"/>
-        </svg>
-      </div>`,
-      iconSize: [22, 22],
-      iconAnchor: [11, 11],
-    });
-  }
-
   private avviaAnimazione() {
     this.animInterval = setInterval(() => {
       const now = Date.now();
       for (const t of this.treniAnimati) {
-        if (!t.destinazioneCoords) continue;
         const p = t.partenza;
-        if (p.arrivato) continue;
-        if (p.nonPartito) continue;
+        if (p.nonPartito || p.arrivato) continue;
 
-        const durata = (p.orarioArrivo || now) - (p.orarioPartenza || now);
-        const elapsed = now - (p.orarioPartenza || now) + p.ritardo * 60000;
-        const progress = durata > 0 ? Math.max(0, Math.min(1, elapsed / durata)) : 0;
+        const partenzaEff = (p.orarioPartenza || now) + p.ritardo * 60000;
+        const arrivoEff = (p.orarioArrivo || now) + p.ritardo * 60000;
+        const durata = arrivoEff - partenzaEff;
 
-        const lat = t.origineCoords[0] + (t.destinazioneCoords[0] - t.origineCoords[0]) * progress;
-        const lon = t.origineCoords[1] + (t.destinazioneCoords[1] - t.origineCoords[1]) * progress;
+        if (durata <= 0) continue;
 
-        if (progress > 0 && progress < 1) {
-          const angle = calculateAngle(
-            [lat, lon],
-            t.destinazioneCoords
-          );
-          t.marker.setLatLng([lat, lon]);
-          t.marker.setIcon(this.createTrainIcon(angle));
+        const progress = (now - partenzaEff) / durata;
+
+        if (progress <= 0) continue;
+
+        const totalSegments = t.fermate.length - 1;
+        if (totalSegments <= 0) continue;
+
+        if (progress >= 1) {
+          const last = t.fermate[t.fermate.length - 1];
+          t.marker.setLatLng([last.lat!, last.lon!]);
+          continue;
         }
+
+        const segmentFloat = progress * totalSegments;
+        const segmentIdx = Math.min(Math.floor(segmentFloat), totalSegments - 1);
+        const localProgress = segmentFloat - segmentIdx;
+
+        const f1 = t.fermate[segmentIdx];
+        const f2 = t.fermate[segmentIdx + 1];
+        if (!f1 || !f2) continue;
+
+        const lat = f1.lat! + (f2.lat! - f1.lat!) * localProgress;
+        const lon = f1.lon! + (f2.lon! - f1.lon!) * localProgress;
+        t.marker.setLatLng([lat, lon]);
       }
     }, 1000);
   }
@@ -424,10 +437,6 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (this.animInterval) {
       clearInterval(this.animInterval);
       this.animInterval = null;
-    }
-    if (this.regioneRefreshInterval) {
-      clearInterval(this.regioneRefreshInterval);
-      this.regioneRefreshInterval = null;
     }
   }
 
@@ -438,9 +447,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.regioneRfi = 0;
     this.treniAnimati = [];
     this.treniRegioneLayer.clearLayers();
-    this.regioneStazioniLayer.clearLayers();
     if (this.map.hasLayer(this.treniRegioneLayer)) this.treniRegioneLayer.remove();
-    if (this.map.hasLayer(this.regioneStazioniLayer)) this.regioneStazioniLayer.remove();
     this.showSearch.set(true);
     this.selectedTrain.set(null);
     this.selectedStation.set(null);
@@ -743,10 +750,4 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
     return lastPassed;
   }
-}
-
-function calculateAngle(from: [number, number], to: [number, number]): number {
-  const dy = to[0] - from[0];
-  const dx = to[1] - from[1];
-  return Math.atan2(dx, dy) * (180 / Math.PI);
 }

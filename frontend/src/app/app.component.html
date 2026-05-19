@@ -103,12 +103,8 @@
     }
 
     @if (isMobile()) {
-      <button class="fab" (click)="regionFilterActive() ? resetRegion() : toggleSidebar()">{{ regionFilterActive() ? '✕' : (selectedTrain() ? (sidebarOpen() ? '✕' : 'i') : (sidebarOpen() ? '✕' : '🔍')) }}</button>
+      <button class="fab" (click)="toggleSidebar()">{{ selectedTrain() ? (sidebarOpen() ? '✕' : 'i') : (sidebarOpen() ? '✕' : '🔍') }}</button>
       <div class="mobile-overlay" [class.visible]="sidebarOpen()" (click)="toggleSidebar()"></div>
-    }
-
-    @if (!isMobile() && regionFilterActive()) {
-      <button class="fab fab-reset" (click)="resetRegion()" title="Chiudi regione">✕</button>
     }
   </div>
 
