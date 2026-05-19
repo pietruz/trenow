@@ -1,4 +1,4 @@
-:host { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 10px; box-sizing: border-box; }
+:host { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 3px; box-sizing: border-box; }
 .train-detail-top { flex: 0 0 auto; }
 .train-detail-list { flex: 1; overflow-y: auto; }
 .header { margin-bottom: 10px; }
@@ -15,7 +15,7 @@ h4 { margin: 0; font-size: 13px; color: #666; text-transform: uppercase; }
 .ritardo-alto { background: #fee2e2; color: #991b1b; }
 .subtitle { padding: 6px 8px; background: #fef3c7; border-radius: 4px; font-size: 12px; margin-bottom: 8px; }
 .rilevamento { font-size: 12px; color: #666; margin-bottom: 8px; }
-.fermata { padding: 8px; border-bottom: 1px solid #f3f4f6; transition: background 0.2s; }
+.fermata { padding:  8px 8px 8px 0; border-bottom: 1px solid #f3f4f6; transition: background 0.2s; }
 .fermata:hover { background: #f9fafb; }
 .fermata.soppressa { opacity: 0.5; text-decoration: line-through; }
 .fermata-info { display: flex; justify-content: space-between; align-items: center; }

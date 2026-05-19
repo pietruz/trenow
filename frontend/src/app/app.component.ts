@@ -31,6 +31,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   settings = signal(this.loadSettings());
   showSettings = signal(false);
 
+  private get overlayPadding(): [number, number] {
+    return !this.isMobile() && (this.showSearch() || this.selectedStation() || this.selectedTrain())
+      ? [400, 0]
+      : [0, 0];
+  }
+
   private loadSettings(): { refreshInterval: number } {
     try {
       const stored = localStorage.getItem('trenow_settings');
@@ -148,7 +154,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
           [lat - latDelta, lon - lonDelta],
           [lat + latDelta, lon + lonDelta]
         );
-        this.map.fitBounds(bounds, { padding: [20, 20], maxZoom: 12 });
+        this.map.fitBounds(bounds, { paddingTopLeft: this.overlayPadding, paddingBottomRight: [20, 20], maxZoom: 12, animate: true });
       },
       () => {},
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
@@ -181,7 +187,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       marker.on('click', () => {
         this.savedMapCenter = this.map.getCenter();
         this.savedMapZoom = this.map.getZoom();
-        this.map.setView([s.lat, s.lon], 14, { animate: true });
+        this.map.fitBounds(L.latLngBounds([s.lat, s.lon], [s.lat, s.lon]), { paddingTopLeft: this.overlayPadding, paddingBottomRight: [0, 0], maxZoom: 14, animate: true });
         this.selectedTrain.set(null);
         this.showSearch.set(false);
         this.selectedStation.set({
@@ -240,7 +246,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (s) {
       this.savedMapCenter = this.map.getCenter();
       this.savedMapZoom = this.map.getZoom();
-      this.map.setView([s.lat, s.lon], 14, { animate: true });
+      this.map.fitBounds(L.latLngBounds([s.lat, s.lon], [s.lat, s.lon]), { paddingTopLeft: this.overlayPadding, paddingBottomRight: [0, 0], maxZoom: 14, animate: true });
     }
   }
 
@@ -272,7 +278,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
     this.clearMapPaths();
     if (this.savedMapCenter && this.savedMapZoom) {
-      this.map.setView(this.savedMapCenter, this.savedMapZoom, { animate: true });
+      this.map.fitBounds(L.latLngBounds(this.savedMapCenter, this.savedMapCenter), { paddingTopLeft: this.overlayPadding, paddingBottomRight: [0, 0], maxZoom: this.savedMapZoom, animate: true });
       this.savedMapCenter = null;
       this.savedMapZoom = null;
     }
@@ -516,7 +522,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.markersLayer.addTo(this.map);
 
     if (bounds.isValid() && !skipFitBounds) {
-      this.map.fitBounds(bounds, { padding: [50, 50] });
+      this.map.fitBounds(bounds, { paddingTopLeft: this.overlayPadding, paddingBottomRight: [50, 50], animate: true });
     }
 
     return lastPassed;
