@@ -21,6 +21,7 @@ $routes = [
     '/api/treno'      => 'treno.php',
     '/api/test-api'   => 'test-api.php',
     '/api/ping'       => 'ping.php',
+    '/api/treni-regione' => 'treni-regione.php',
 ];
 
 if (isset($routes[$requestUri])) {
