@@ -130,7 +130,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.map = L.map(this.mapContainer().nativeElement, {
       center: [41.9, 12.5],
       zoom: 6,
+      zoomControl: false,
     });
+
+    L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
