@@ -26,6 +26,7 @@ interface TrenoAnimato {
   ultimoRilevIdx: number;
   ultimoRilevTime: number;
   posizionePersonalizzata: boolean;
+  startProgress: number;
 }
 
 @Component({
@@ -404,6 +405,21 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
       const ultimoRilevTime = treg.ultimoRilev || 0;
 
+      let startProgress = 0;
+      if (posizionePersonalizzata && ultimoRilevIdx >= 0 && ultimoRilevIdx < fermate.length - 1) {
+        const fLat = Number(fermate[ultimoRilevIdx].lat!);
+        const fLon = Number(fermate[ultimoRilevIdx].lon!);
+        const nLat = Number(fermate[ultimoRilevIdx + 1].lat!);
+        const nLon = Number(fermate[ultimoRilevIdx + 1].lon!);
+        const dLat = nLat - fLat;
+        const dLon = nLon - fLon;
+        if (dLat !== 0 || dLon !== 0) {
+          const gpLat = dLat !== 0 ? (posizionePersonalizzata[0] - fLat) / dLat : 0;
+          const gpLon = dLon !== 0 ? (posizionePersonalizzata[1] - fLon) / dLon : 0;
+          startProgress = Math.max(0, Math.min(1, (gpLat + gpLon) / 2));
+        }
+      }
+
       const posIniziale: [number, number] = posizionePersonalizzata ?? (
         ultimoRilevIdx >= 0 && fermate[ultimoRilevIdx]?.lat
           ? [fermate[ultimoRilevIdx].lat!, fermate[ultimoRilevIdx].lon!]
@@ -429,6 +445,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         ultimoRilevIdx,
         ultimoRilevTime,
         posizionePersonalizzata: posizionePersonalizzata !== null,
+        startProgress,
       });
     }
 
@@ -500,7 +517,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
             continue;
           }
 
-          const progress = Math.min(1, (now - partenzaEff) / durata);
+          const rawProgress = t.posizionePersonalizzata
+            ? t.startProgress + (now - t.ultimoRilevTime) / durata
+            : (now - partenzaEff) / durata;
+          const progress = Math.min(1, rawProgress);
 
           if (progress >= 1) {
             this.aggiornaPosizioneTreno(t, fNext.lat!, fNext.lon!);
