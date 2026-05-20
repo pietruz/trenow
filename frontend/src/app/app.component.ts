@@ -406,7 +406,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         ultimoRilevTime,
       });
 
-      bounds.extend(posIniziale);
+      if (ultimoRilevIdx >= 0) {
+        bounds.extend(posIniziale);
+      }
     }
 
     this.treniRegioneLayer.addTo(this.map);
