@@ -25,6 +25,7 @@ interface TrenoAnimato {
   colore: string;
   ultimoRilevIdx: number;
   ultimoRilevTime: number;
+  posizionePersonalizzata: boolean;
 }
 
 @Component({
@@ -427,6 +428,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         colore,
         ultimoRilevIdx,
         ultimoRilevTime,
+        posizionePersonalizzata: posizionePersonalizzata !== null,
       });
     }
 
@@ -485,12 +487,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
           const arrivoFermata = fNext.arrivo_teorico || fNext.partenza_teorica;
           if (!partenzaFermata || !arrivoFermata) continue;
 
-          const partenzaEff = partenzaFermata + p.ritardo * 60000;
+          const partenzaEff = t.posizionePersonalizzata
+            ? t.ultimoRilevTime
+            : partenzaFermata + p.ritardo * 60000;
           const arrivoEff = arrivoFermata + p.ritardo * 60000;
           const durata = arrivoEff - partenzaEff;
 
-          if (durata <= 0 || now <= partenzaEff) {
-            this.aggiornaPosizioneTreno(t, fRilev.lat!, fRilev.lon!);
+          if (durata <= 0 || now < partenzaEff) {
+            if (!t.posizionePersonalizzata) {
+              this.aggiornaPosizioneTreno(t, fRilev.lat!, fRilev.lon!);
+            }
             continue;
           }
 
