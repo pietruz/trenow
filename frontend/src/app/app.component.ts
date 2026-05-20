@@ -351,14 +351,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         ? [fermate[ultimoRilevIdx].lat!, fermate[ultimoRilevIdx].lon!]
         : [fermate[0].lat!, fermate[0].lon!];
 
-      const destIdx = Math.min(ultimoRilevIdx + 1, fermate.length - 1);
-      const angolo = Math.atan2(
-        fermate[destIdx].lon! - posIniziale[1],
-        fermate[destIdx].lat! - posIniziale[0]
-      ) * (180 / Math.PI);
-
       const marker = L.marker(posIniziale, {
-        icon: this.createTrainIcon(colore, angolo),
+        icon: this.createTrainIcon(colore, treg.numeroTreno),
         zIndexOffset: 1000,
       });
       marker.bindPopup(this.popupTreno(treg));
@@ -393,20 +387,20 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.startRegioneRefresh();
   }
 
-  private createTrainIcon(colore: string, angolo: number): L.DivIcon {
+  private createTrainIcon(colore: string, numero: number): L.DivIcon {
     return L.divIcon({
       className: '',
-      html: `<div style="transform:rotate(${angolo}deg);width:24px;height:24px;">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      html: `<div style="display:flex;flex-direction:column;align-items:center;width:60px;line-height:1;gap:1px;">
+        <span style="font-size:9px;font-weight:700;color:#fff;background:${colore};padding:1px 4px;border-radius:3px;white-space:nowrap;">${numero}</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="3" y="5" width="18" height="13" rx="3" fill="${colore}" stroke="#fff" stroke-width="1.5"/>
           <circle cx="8" cy="19" r="3" fill="#333" stroke="#fff" stroke-width="1"/>
           <circle cx="16" cy="19" r="3" fill="#333" stroke="#fff" stroke-width="1"/>
           <rect x="8" y="8" width="8" height="4" rx="1" fill="#fff" opacity="0.6"/>
-          <rect x="10" y="3" width="4" height="3" rx="1" fill="${colore}" stroke="#fff" stroke-width="1"/>
         </svg>
       </div>`,
-      iconSize: [24, 24],
-      iconAnchor: [12, 12],
+      iconSize: [60, 30],
+      iconAnchor: [30, 15],
     });
   }
 
@@ -415,14 +409,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     return `<b>${t.categoria} ${t.numeroTreno}</b><br/>${t.origine || ''} → ${t.destinazione || ''}<br/>${ritardo}`;
   }
 
-  private aggiornaIconaTreno(t: TrenoAnimato, lat: number, lon: number) {
+  private aggiornaPosizioneTreno(t: TrenoAnimato, lat: number, lon: number) {
     t.marker.setLatLng([lat, lon]);
-    const nextIdx = Math.min(t.ultimoRilevIdx + 1, t.fermate.length - 1);
-    if (nextIdx > 0 && nextIdx < t.fermate.length && t.fermate[nextIdx]?.lat) {
-      const nf = t.fermate[nextIdx];
-      const angolo = Math.atan2(nf.lon! - lon, nf.lat! - lat) * (180 / Math.PI);
-      t.marker.setIcon(this.createTrainIcon(t.colore, angolo));
-    }
   }
 
   private avviaAnimazione() {
@@ -445,7 +433,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
           const durata = arrivoEff - t.ultimoRilevTime;
 
           if (durata <= 0) {
-            this.aggiornaIconaTreno(t, fNext.lat!, fNext.lon!);
+            this.aggiornaPosizioneTreno(t, fNext.lat!, fNext.lon!);
             if (t.ultimoRilevIdx + 1 < t.fermate.length - 1) {
               t.ultimoRilevIdx++;
               t.ultimoRilevTime = arrivoEff;
@@ -456,12 +444,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
           const progress = (now - t.ultimoRilevTime) / durata;
 
           if (progress <= 0) {
-            this.aggiornaIconaTreno(t, fRilev.lat!, fRilev.lon!);
+            this.aggiornaPosizioneTreno(t, fRilev.lat!, fRilev.lon!);
             continue;
           }
 
           if (progress >= 1) {
-            this.aggiornaIconaTreno(t, fNext.lat!, fNext.lon!);
+            this.aggiornaPosizioneTreno(t, fNext.lat!, fNext.lon!);
             if (t.ultimoRilevIdx + 1 < t.fermate.length - 1) {
               t.ultimoRilevIdx++;
               t.ultimoRilevTime = arrivoEff;
@@ -471,7 +459,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
           const lat = fRilev.lat! + (fNext.lat! - fRilev.lat!) * progress;
           const lon = fRilev.lon! + (fNext.lon! - fRilev.lon!) * progress;
-          this.aggiornaIconaTreno(t, lat, lon);
+          this.aggiornaPosizioneTreno(t, lat, lon);
         } else {
           const partenzaEff = (p.orarioPartenza || now) + p.ritardo * 60000;
           const arrivoEff = (p.orarioArrivo || now) + p.ritardo * 60000;
@@ -486,7 +474,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
           if (progress >= 1) {
             const last = t.fermate[t.fermate.length - 1];
-            this.aggiornaIconaTreno(t, last.lat!, last.lon!);
+            this.aggiornaPosizioneTreno(t, last.lat!, last.lon!);
             continue;
           }
 
@@ -500,7 +488,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
           const lat = f1.lat! + (f2.lat! - f1.lat!) * localProgress;
           const lon = f1.lon! + (f2.lon! - f1.lon!) * localProgress;
-          this.aggiornaIconaTreno(t, lat, lon);
+          this.aggiornaPosizioneTreno(t, lat, lon);
         }
       }
     }, 1000);
@@ -572,16 +560,19 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         existing.fermate = fermate;
 
         const searchName = (dett.stazioneUltimoRilevamento || '').toLowerCase().trim();
-        existing.ultimoRilevIdx = searchName ? fermate.findIndex(
+        const newIdx = searchName ? fermate.findIndex(
           f => f.stazione.toLowerCase().trim() === searchName
         ) : -1;
-        existing.ultimoRilevTime = treg.ultimoRilev || 0;
 
-        if (existing.ultimoRilevIdx >= 0 && fermate[existing.ultimoRilevIdx]?.lat) {
-          this.aggiornaIconaTreno(existing,
-            fermate[existing.ultimoRilevIdx].lat!,
-            fermate[existing.ultimoRilevIdx].lon!
-          );
+        if (newIdx >= 0 && existing.ultimoRilevIdx >= 0 && newIdx !== existing.ultimoRilevIdx) {
+          existing.ultimoRilevIdx = newIdx;
+          existing.ultimoRilevTime = treg.ultimoRilev || 0;
+          if (fermate[newIdx]?.lat) {
+            this.aggiornaPosizioneTreno(existing,
+              fermate[newIdx].lat!,
+              fermate[newIdx].lon!
+            );
+          }
         }
       }
     }
