@@ -98,6 +98,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private animInterval: ReturnType<typeof setInterval> | null = null;
   private regioneRefreshInterval: ReturnType<typeof setInterval> | null = null;
   private regioneRfi = 0;
+  private savedRegionRfi = 0;
 
   constructor(private api: ApiService) {
     this.checkScreenSize();
@@ -259,6 +260,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
 
     if (this.regionFilterActive()) {
+      this.savedRegionRfi = this.regioneRfi;
       this.stopAnimazione();
       this.treniAnimati = [];
       this.treniRegioneLayer.clearLayers();
@@ -379,10 +381,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       let ultimoRilevIdx = searchName ? fermate.findIndex(
         f => f.stazione.toLowerCase().trim() === searchName
       ) : -1;
+      let trovatoPerNome = ultimoRilevIdx >= 0;
       if (ultimoRilevIdx >= fermate.length - 1) ultimoRilevIdx = -1;
 
       let posizionePersonalizzata: [number, number] | null = null;
-      if (ultimoRilevIdx < 0 && searchName && treg.ultimoRilev) {
+      if (!trovatoPerNome && searchName && treg.ultimoRilev) {
         for (let j = 0; j < fermate.length; j++) {
           const t = (fermate[j].partenza_teorica || fermate[j].arrivo_teorico || 0);
           if (t > 0 && (t + (treg.ritardo || 0) * 60000) <= treg.ultimoRilev) {
@@ -428,7 +431,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         ultimoRilevTime,
       });
 
-      if (ultimoRilevIdx >= 0) {
+      if (trovatoPerNome) {
         bounds.extend(posIniziale);
       }
     }
@@ -702,6 +705,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       this.sidebarOpen.set(false);
     }
     this.clearMapPaths();
+    if (this.savedRegionRfi) {
+      const r = this.savedRegionRfi;
+      this.savedRegionRfi = 0;
+      this.onRegionSelected(r);
+      return;
+    }
     if (this.savedMapCenter && this.savedMapZoom) {
       this.map.fitBounds(L.latLngBounds(this.savedMapCenter, this.savedMapCenter), { paddingTopLeft: this.overlayPadding, paddingBottomRight: [0, 0], maxZoom: this.savedMapZoom, animate: true });
       this.savedMapCenter = null;
