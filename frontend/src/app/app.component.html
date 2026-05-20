@@ -18,7 +18,7 @@
   </header>
 
   <div class="app-container">
-    @if (isMobile()) {
+    @if (isMobile() && !regionFilterActive()) {
       <div class="sidebar" [class.open]="sidebarOpen()">
         <div class="drag-handle" (touchstart)="onTouchStart($event)" (touchmove)="onTouchMove($event)" (touchend)="onTouchEnd()">
           <div class="drag-bar"></div>
@@ -102,7 +102,7 @@
       </div>
     }
 
-    @if (isMobile()) {
+    @if (isMobile() && !regionFilterActive()) {
       <button class="fab" (click)="toggleSidebar()">{{ selectedTrain() ? (sidebarOpen() ? '✕' : 'i') : (sidebarOpen() ? '✕' : '🔍') }}</button>
       <div class="mobile-overlay" [class.visible]="sidebarOpen()" (click)="toggleSidebar()"></div>
     }

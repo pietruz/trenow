@@ -330,6 +330,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         this.regionName.set(res.nomeRegione);
         this.regionFilterActive.set(true);
         this.showSearch.set(false);
+        if (this.isMobile()) this.sidebarOpen.set(false);
 
         this.stazioniLayer.remove();
         this.markersLayer.remove();
