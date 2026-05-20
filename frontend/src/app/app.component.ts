@@ -340,7 +340,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         if (this.completedPath) { this.completedPath.remove(); this.completedPath = null; }
         if (this.remainingPath) { this.remainingPath.remove(); this.remainingPath = null; }
 
-        const sliced = res.treni.slice(0, 15);
+        const sliced = res.treni.slice(0, 30);
         const obs = sliced.map(t =>
           this.api.getAndamentoTreno(String(t.numeroTreno), t.codOrigine).pipe(
             catchError(() => of(null))
@@ -560,7 +560,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private refreshRegioneTrains() {
     this.api.getTreniRegione(this.regioneRfi, 40).subscribe({
       next: (res) => {
-        const sliced = res.treni.slice(0, 15);
+        const sliced = res.treni.slice(0, 30);
         const obs = sliced.map(t =>
           this.api.getAndamentoTreno(String(t.numeroTreno), t.codOrigine).pipe(
             catchError(() => of(null))
