@@ -13,19 +13,22 @@
 |-------------|-------------|
 | **Ricerca treni** | Ricerca per numero treno con autocompletamento |
 | **Ricerca stazioni** | Ricerca stazioni con indicatori sulla mappa |
+| **Filtro regione** | Seleziona una regione per vedere tutti i treni attivi |
+| **Tracciato treno** | Percorso completo con marker animato |
 | **Partenze/Arrivi** | Tab partenze e arrivi per stazione |
 | **Mappa interattiva** | OpenStreetMap via Leaflet, markers stazioni |
 | **Percorso treno** | Tracciato verde (completato) e marrone (rimanente) |
 | **Dettaglio treno** | Lista fermate con orari reali e ritardi |
+| **Animazione marker** | Posizione treno aggiornata ogni 1s su stima temporale |
 | **Aggiornamento automatico** | Refresh configurabile 5–120 secondi |
 | **Design responsive** | Mobile (bottom sheet) e Desktop (floating card) |
 
 ### Flusso utente
 
-1. Ricerca un numero treno o clicca una stazione sulla mappa
-2. Il pannello mostra i dettagli del treno/stazione
-3. Il percorso viene tracciato sulla mappa con stato completato/rimanente
-4. Refresh automatico con countdown
+1. **Ricerca treno/stazione**: cerca un numero treno o clicca una stazione
+2. **Esplora regione**: seleziona una regione dal menu → tutti i treni attivi appaiono sulla mappa con marker colorati per tipo
+3. **Clicca un treno**: apre il dettaglio completo con tracciato bicolore
+4. **Reset**: il pulsante sulla barra regione o il toggle stazione/treno/regione riportano alla ricerca
 
 ---
 
@@ -33,28 +36,28 @@
 
 ```
 BROWSER (Angular 19)
-  ┌─────────┐   ┌────────────┐   ┌─────────────┐   ┌────────────┐
-  │   Map   │   │   Search   │   │Train Detail │   │  Station   │
-  │ Leaflet │   │ Component  │   │  Component  │   │   Panel    │
-  └────┬────┘   └─────┬──────┘   └──────┬──────┘   └──────┬─────┘
-       └──────────────┴──────────────────┴─────────────────┘
+  ┌─────────┐  ┌───────┐  ┌───────────┐  ┌────────────┐  ┌──────────┐
+  │   Map   │  │ Search│  │Regione    │  │Train Detail│  │  Station │
+  │ Leaflet │  │       │  │(markers)  │  │  Component │  │   Panel  │
+  └────┬────┘  └───┬───┘  └─────┬─────┘  └──────┬──────┘  └────┬─────┘
+       └───────────┴────────────┴────────────────┴──────────────┘
                               │
                      ┌────────┴────────┐
                      │  ApiService     │
                      └────────┬────────┘
                               │ HTTP
 SERVER (PHP 8.x)              ▼
-  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
-  │ stazioni │ │  cerca   │ │  treno   │ │partenze  │
-  │  .php    │ │  .php    │ │  .php    │ │  .php    │
-  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘
-       └────────────┴────────────┴────────────┘
-                     │
-                     ▼
-              ┌────────────┐     ┌────────────┐
-              │ Viaggiatreno│     │  MariaDB   │
-              │  API (ext)  │     │  (cache)   │
-              └────────────┘     └────────────┘
+  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐
+  │ stazioni │ │  cerca   │ │  treno   │ │partenze  │ │treni-regione │
+  │  .php    │ │  .php    │ │  .php    │ │  .php    │ │   .php       │
+  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └──────┬───────┘
+       └────────────┴────────────┴────────────┘              │
+                              │                              ▼
+                              ▼                      ┌──────────────┐
+                      ┌────────────┐                 │ Tabella      │
+                      │ Viaggiatreno│                │ stazioni +   │
+                      │  API (ext)  │                │ treni_cache  │
+                      └────────────┘                 └──────────────┘
 ```
 
 ### Stack
@@ -80,7 +83,7 @@ trenow/
 ├── frontend/                    # Angular 19
 │   ├── src/app/
 │   │   ├── components/
-│   │   │   ├── search/          # Ricerca stazione/treno
+│   │   │   ├── search/          # Ricerca stazione/treno/regione
 │   │   │   ├── train-detail/    # Dettaglio treno + fermate
 │   │   │   └── station-panel/   # Partenze/arrivi stazione
 │   │   ├── services/
@@ -105,7 +108,10 @@ trenow/
 │   │   ├── cerca.php            # GET /cerca.php?q=
 │   │   ├── partenze.php         # GET /partenze.php?stazione=
 │   │   ├── arrivi.php           # GET /arrivi.php?stazione=
+│   │   ├── treni-regione.php    # GET /treni-regione.php?regione=N
 │   │   └── ping.php             # Health check
+│   ├── tests/
+│   │   └── treni-regione.test.php
 │   ├── init.sql                 # Schema DB
 │   ├── Dockerfile
 │   └── nginx.conf
@@ -123,9 +129,37 @@ trenow/
 | `treno.php?num=&orig=&data=` | Dettaglio treno (fermate, orari, ritardi) |
 | `partenze.php?stazione=` | Prossime partenze |
 | `arrivi.php?stazione=` | Prossimi arrivi |
+| `treni-regione.php?regione=N` | Treni attivi in una regione (hub station) |
 | `ping.php` | Health check DB |
 
+### Filtro Regione
+
+L'endpoint `treni-regione.php` accetta `?regione=N` (1-22, compartimenti RFI) e:
+
+1. Usa una **mappa statica** di stazioni hub regionali (78 stazioni per 20 regioni)
+2. Per ogni hub, interroga in parallelo (`curl_multi`) sia `/partenze` che `/arrivi`
+3. Deduplica per `numeroTreno-codOrigine`
+4. Filtra treni già arrivati, non partiti o annullati
+5. Cache 2 minuti su tabella `treni_cache`
+
 ### Logiche chiave
+
+**Animazione marker regione (1/s)**
+- Posizione calcolata per segmento tra due fermate consecutive
+- `progress = (now - (partenza_teorica + ritardo)) / (arrivo_teorico - partenza_teorica)`
+- Se `stazioneUltimoRilevamento` non è nella lista fermate, recupera coordinate da `stazioni[]` e calcola posizione geografica intermedia
+- Interpolazione lineare lat/lon tra le due fermate
+
+**Colori marker per tipo treno**
+- REG (Regionale) → verde `#16a34a`
+- FR (Frecciarossa) → rosso `#dc2626`
+- IC (InterCity) → grigio `#6b7280`
+- ICN (InterCityNotte) → blu `#1e40af`
+- Altri → palette dedicata (un colore per tipo)
+
+**Icona marker**
+- SVG con badge etichetta `compNumeroTreno`
+- Colore testo automatico (bianco/scuro) in base alla luminanza dello sfondo
 
 **Percorso treno (Approccio C)**
 - Posizione primaria: `stazioneUltimoRilevamento`
@@ -148,10 +182,6 @@ trenow/
 **Responsive**
 - Mobile: bottom sheet 70dvh, drag handle, FAB toggle, overlay sfondo
 - Desktop: floating card con animazione `aaSlideUp`
-
-**Sticky Fermate**
-- Intestazione "Fermate" fissa in alto nel pannello dettaglio treno
-- Solo la lista fermate scorre (`overflow-y: auto`)
 
 **Refresh automatico**
 - Countdown circolare SVG (14px) nel train-overlay
@@ -178,6 +208,12 @@ ng build --base-href=/trenow/
 # Copiare backend/src/*.php in /trenow/api/
 # Importare backend/init.sql via phpMyAdmin
 # Configurare DB_USER / DB_PASS in config.php sul server
+```
+
+### Test
+
+```bash
+php backend/tests/treni-regione.test.php
 ```
 
 ### Sicurezza
