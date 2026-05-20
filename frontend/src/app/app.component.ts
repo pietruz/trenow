@@ -292,7 +292,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.resetAllInner();
     this.regioneRfi = rfi;
 
-    this.api.getTreniRegione(rfi, 15).subscribe({
+    this.api.getTreniRegione(rfi, 40).subscribe({
       next: (res) => {
         this.regionName.set(res.nomeRegione);
         this.regionFilterActive.set(true);

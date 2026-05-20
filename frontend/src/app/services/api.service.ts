@@ -51,7 +51,7 @@ export class ApiService {
     return this.http.get<DettaglioTreno>(endpoint('treno'), { params });
   }
 
-  getTreniRegione(regione: number, limit = 30): Observable<TreniRegioneResponse> {
+  getTreniRegione(regione: number, limit = 70): Observable<TreniRegioneResponse> {
     return this.http.get<TreniRegioneResponse>(endpoint('treni-regione'), {
       params: { regione: String(regione), limite: String(limit), refresh: 'force' }
     });
