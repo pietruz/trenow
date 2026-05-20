@@ -307,7 +307,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         if (this.completedPath) { this.completedPath.remove(); this.completedPath = null; }
         if (this.remainingPath) { this.remainingPath.remove(); this.remainingPath = null; }
 
-        const obs = res.treni.slice(0, 15).map(t =>
+        const sliced = res.treni.slice(0, 15);
+        const obs = sliced.map(t =>
           this.api.getAndamentoTreno(String(t.numeroTreno), t.codOrigine).pipe(
             catchError(() => of(null))
           )
@@ -317,8 +318,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
         forkJoin(obs).subscribe({
           next: (details) => {
-            const valid = details.filter((d): d is DettaglioTreno => d !== null && !!d.fermate?.length);
-            this.disegnaTracciatiRegione(valid, res.treni);
+            const valid = details.map((d, i) => d ? { dett: d as DettaglioTreno, treg: sliced[i] } : null)
+              .filter((x): x is { dett: DettaglioTreno; treg: TrenoRegione } => x !== null && !!x.dett.fermate?.length);
+            this.disegnaTracciatiRegione(valid.map(x => x.dett), valid.map(x => x.treg));
           }
         });
       },
@@ -523,7 +525,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private refreshRegioneTrains() {
     this.api.getTreniRegione(this.regioneRfi, 40).subscribe({
       next: (res) => {
-        const obs = res.treni.slice(0, 15).map(t =>
+        const sliced = res.treni.slice(0, 15);
+        const obs = sliced.map(t =>
           this.api.getAndamentoTreno(String(t.numeroTreno), t.codOrigine).pipe(
             catchError(() => of(null))
           )
@@ -531,8 +534,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         if (obs.length === 0) return;
         forkJoin(obs).subscribe({
           next: (details) => {
-            const valid = details.filter((d): d is DettaglioTreno => d !== null && !!d.fermate?.length);
-            this.aggiornaTracciatiRegione(valid, res.treni);
+            const valid = details.map((d, i) => d ? { dett: d as DettaglioTreno, treg: sliced[i] } : null)
+              .filter((x): x is { dett: DettaglioTreno; treg: TrenoRegione } => x !== null && !!x.dett.fermate?.length);
+            this.aggiornaTracciatiRegione(valid.map(x => x.dett), valid.map(x => x.treg));
           }
         });
       }
