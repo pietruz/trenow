@@ -366,7 +366,6 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private disegnaTracciatiRegione(dettagli: DettaglioTreno[], treniReg: TrenoRegione[]) {
     this.treniRegioneLayer.clearLayers();
     this.treniAnimati = [];
-    const bounds = L.latLngBounds([]);
 
     for (let i = 0; i < dettagli.length; i++) {
       const dett = dettagli[i];
@@ -381,11 +380,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       let ultimoRilevIdx = searchName ? fermate.findIndex(
         f => f.stazione.toLowerCase().trim() === searchName
       ) : -1;
-      let trovatoPerNome = ultimoRilevIdx >= 0;
       if (ultimoRilevIdx >= fermate.length - 1) ultimoRilevIdx = -1;
 
       let posizionePersonalizzata: [number, number] | null = null;
-      if (!trovatoPerNome && searchName && treg.ultimoRilev) {
+      if (ultimoRilevIdx < 0 && searchName && treg.ultimoRilev) {
         for (let j = 0; j < fermate.length; j++) {
           const t = (fermate[j].partenza_teorica || fermate[j].arrivo_teorico || 0);
           if (t > 0 && (t + (treg.ritardo || 0) * 60000) <= treg.ultimoRilev) {
@@ -430,22 +428,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         ultimoRilevIdx,
         ultimoRilevTime,
       });
-
-      if (trovatoPerNome) {
-        bounds.extend(posIniziale);
-      }
     }
 
     this.treniRegioneLayer.addTo(this.map);
-
-    if (bounds.isValid()) {
-      this.map.fitBounds(bounds, {
-        paddingTopLeft: this.overlayPadding,
-        paddingBottomRight: [50, 50],
-        animate: true,
-        maxZoom: 10,
-      });
-    }
 
     this.avviaAnimazione();
     this.startRegioneRefresh();
