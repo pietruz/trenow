@@ -299,6 +299,35 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.resetAllInner();
     this.regioneRfi = rfi;
 
+    const regioneCenters: Record<number, [number, number]> = {
+      1: [45.5, 9.5],
+      2: [44.4, 8.9],
+      3: [45.0, 7.5],
+      4: [45.7, 7.3],
+      5: [41.9, 12.5],
+      6: [43.5, 13.5],
+      7: [41.5, 14.5],
+      8: [44.5, 11.0],
+      9: [46.2, 11.2],
+      10: [46.0, 13.0],
+      11: [43.5, 13.5],
+      12: [45.5, 12.0],
+      13: [43.5, 11.0],
+      14: [37.5, 14.0],
+      15: [40.5, 16.0],
+      16: [41.0, 16.5],
+      17: [38.5, 16.5],
+      18: [40.8, 14.5],
+      19: [42.3, 13.8],
+      20: [40.0, 9.0],
+      21: [46.5, 11.3],
+      22: [46.9, 11.4],
+    };
+    const c = regioneCenters[rfi];
+    if (c) {
+      this.map.fitBounds(L.latLngBounds(c, c), { maxZoom: 9, animate: true });
+    }
+
     this.api.getTreniRegione(rfi, 40).subscribe({
       next: (res) => {
         this.regionName.set(res.nomeRegione);
@@ -360,7 +389,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         : [fermate[0].lat!, fermate[0].lon!];
 
       const marker = L.marker(posIniziale, {
-        icon: this.createTrainIcon(colore, treg.numeroTreno),
+        icon: this.createTrainIcon(colore, treg.compNumeroTreno || String(treg.numeroTreno)),
         zIndexOffset: 1000,
       });
       marker.bindPopup(this.popupTreno(treg));
@@ -395,11 +424,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.startRegioneRefresh();
   }
 
-  private createTrainIcon(colore: string, numero: number): L.DivIcon {
+  private createTrainIcon(colore: string, label: string): L.DivIcon {
     return L.divIcon({
       className: 'train-marker',
-      html: `<div style="display:flex;flex-direction:column;align-items:center;width:60px;line-height:1;gap:1px;">
-        <span style="font-size:9px;font-weight:700;color:#fff;background:${colore};padding:1px 4px;border-radius:3px;white-space:nowrap;">${numero}</span>
+      html: `<div style="display:flex;flex-direction:column;align-items:center;width:80px;line-height:1;gap:1px;">
+        <span style="font-size:8px;font-weight:700;color:#fff;background:${colore};padding:1px 3px;border-radius:3px;white-space:nowrap;">${label}</span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="3" y="5" width="18" height="13" rx="3" fill="${colore}" stroke="#fff" stroke-width="1.5"/>
           <circle cx="8" cy="19" r="3" fill="#333" stroke="#fff" stroke-width="1"/>
@@ -407,8 +436,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
           <rect x="8" y="8" width="8" height="4" rx="1" fill="#fff" opacity="0.6"/>
         </svg>
       </div>`,
-      iconSize: [60, 30],
-      iconAnchor: [30, 15],
+      iconSize: [80, 30],
+      iconAnchor: [40, 15],
     });
   }
 
