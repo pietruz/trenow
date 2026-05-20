@@ -21,8 +21,11 @@ interface TrenoAnimato {
   marker: L.CircleMarker;
   polyline: L.Polyline;
   partenza: TrenoRegione;
+  dettaglio: DettaglioTreno;
   fermate: Fermata[];
   colore: string;
+  ultimoRilevIdx: number;
+  ultimoRilevTime: number;
 }
 
 @Component({
@@ -94,6 +97,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private treniRegioneLayer!: L.LayerGroup;
   private treniAnimati: TrenoAnimato[] = [];
   private animInterval: ReturnType<typeof setInterval> | null = null;
+  private regioneRefreshInterval: ReturnType<typeof setInterval> | null = null;
   private regioneRfi = 0;
 
   constructor(private api: ApiService) {
@@ -350,7 +354,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         this.onTrainSelected(dett);
       });
 
-      const posIniziale = coords[0];
+      const searchName = (dett.stazioneUltimoRilevamento || '').toLowerCase().trim();
+      const ultimoRilevIdx = searchName ? fermate.findIndex(
+        f => f.stazione.toLowerCase().trim() === searchName
+      ) : -1;
+      const ultimoRilevTime = treg.ultimoRilev || 0;
+
+      const posIniziale: [number, number] = ultimoRilevIdx >= 0 && fermate[ultimoRilevIdx]?.lat
+        ? [fermate[ultimoRilevIdx].lat!, fermate[ultimoRilevIdx].lon!]
+        : coords[0];
+
       const marker = L.circleMarker(posIniziale, {
         radius: 7,
         color: colore,
@@ -368,8 +381,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         marker,
         polyline,
         partenza: treg,
+        dettaglio: dett,
         fermate,
         colore,
+        ultimoRilevIdx,
+        ultimoRilevTime,
       });
     }
 
@@ -385,6 +401,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
 
     this.avviaAnimazione();
+    this.startRegioneRefresh();
   }
 
   private popupTreno(t: TrenoRegione): string {
@@ -399,36 +416,76 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         const p = t.partenza;
         if (p.nonPartito || p.arrivato) continue;
 
-        const partenzaEff = (p.orarioPartenza || now) + p.ritardo * 60000;
-        const arrivoEff = (p.orarioArrivo || now) + p.ritardo * 60000;
-        const durata = arrivoEff - partenzaEff;
+        if (t.ultimoRilevIdx >= 0 && t.ultimoRilevIdx < t.fermate.length - 1 && t.ultimoRilevTime > 0) {
+          const fRilev = t.fermate[t.ultimoRilevIdx];
+          const fNext = t.fermate[t.ultimoRilevIdx + 1];
 
-        if (durata <= 0) continue;
+          if (!fRilev?.lat || !fRilev?.lon || !fNext?.lat || !fNext?.lon) continue;
 
-        const progress = (now - partenzaEff) / durata;
+          const arrivoNext = fNext.arrivo_teorico || fNext.partenza_teorica;
+          if (!arrivoNext) continue;
 
-        if (progress <= 0) continue;
+          const arrivoEff = arrivoNext + p.ritardo * 60000;
+          const durata = arrivoEff - t.ultimoRilevTime;
 
-        const totalSegments = t.fermate.length - 1;
-        if (totalSegments <= 0) continue;
+          if (durata <= 0) {
+            t.marker.setLatLng([fNext.lat!, fNext.lon!]);
+            if (t.ultimoRilevIdx + 1 < t.fermate.length - 1) {
+              t.ultimoRilevIdx++;
+              t.ultimoRilevTime = arrivoEff;
+            }
+            continue;
+          }
 
-        if (progress >= 1) {
-          const last = t.fermate[t.fermate.length - 1];
-          t.marker.setLatLng([last.lat!, last.lon!]);
-          continue;
+          const progress = (now - t.ultimoRilevTime) / durata;
+
+          if (progress <= 0) {
+            t.marker.setLatLng([fRilev.lat!, fRilev.lon!]);
+            continue;
+          }
+
+          if (progress >= 1) {
+            t.marker.setLatLng([fNext.lat!, fNext.lon!]);
+            if (t.ultimoRilevIdx + 1 < t.fermate.length - 1) {
+              t.ultimoRilevIdx++;
+              t.ultimoRilevTime = arrivoEff;
+            }
+            continue;
+          }
+
+          const lat = fRilev.lat! + (fNext.lat! - fRilev.lat!) * progress;
+          const lon = fRilev.lon! + (fNext.lon! - fRilev.lon!) * progress;
+          t.marker.setLatLng([lat, lon]);
+        } else {
+          const partenzaEff = (p.orarioPartenza || now) + p.ritardo * 60000;
+          const arrivoEff = (p.orarioArrivo || now) + p.ritardo * 60000;
+          const durata = arrivoEff - partenzaEff;
+          if (durata <= 0) continue;
+
+          const progress = (now - partenzaEff) / durata;
+          if (progress <= 0) continue;
+
+          const totalSegments = t.fermate.length - 1;
+          if (totalSegments <= 0) continue;
+
+          if (progress >= 1) {
+            const last = t.fermate[t.fermate.length - 1];
+            t.marker.setLatLng([last.lat!, last.lon!]);
+            continue;
+          }
+
+          const segmentFloat = progress * totalSegments;
+          const segmentIdx = Math.min(Math.floor(segmentFloat), totalSegments - 1);
+          const localProgress = segmentFloat - segmentIdx;
+
+          const f1 = t.fermate[segmentIdx];
+          const f2 = t.fermate[segmentIdx + 1];
+          if (!f1 || !f2 || !f1.lat || !f2.lat) continue;
+
+          const lat = f1.lat! + (f2.lat! - f1.lat!) * localProgress;
+          const lon = f1.lon! + (f2.lon! - f1.lon!) * localProgress;
+          t.marker.setLatLng([lat, lon]);
         }
-
-        const segmentFloat = progress * totalSegments;
-        const segmentIdx = Math.min(Math.floor(segmentFloat), totalSegments - 1);
-        const localProgress = segmentFloat - segmentIdx;
-
-        const f1 = t.fermate[segmentIdx];
-        const f2 = t.fermate[segmentIdx + 1];
-        if (!f1 || !f2) continue;
-
-        const lat = f1.lat! + (f2.lat! - f1.lat!) * localProgress;
-        const lon = f1.lon! + (f2.lon! - f1.lon!) * localProgress;
-        t.marker.setLatLng([lat, lon]);
       }
     }, 1000);
   }
@@ -437,6 +494,91 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (this.animInterval) {
       clearInterval(this.animInterval);
       this.animInterval = null;
+    }
+    if (this.regioneRefreshInterval) {
+      clearInterval(this.regioneRefreshInterval);
+      this.regioneRefreshInterval = null;
+    }
+  }
+
+  private startRegioneRefresh() {
+    this.stopRegioneRefresh();
+    const interval = this.settings().refreshInterval;
+    this.regioneRefreshInterval = setInterval(() => {
+      this.refreshRegioneTrains();
+    }, interval * 1000);
+  }
+
+  private stopRegioneRefresh() {
+    if (this.regioneRefreshInterval) {
+      clearInterval(this.regioneRefreshInterval);
+      this.regioneRefreshInterval = null;
+    }
+  }
+
+  private refreshRegioneTrains() {
+    this.api.getTreniRegione(this.regioneRfi, 40).subscribe({
+      next: (res) => {
+        const obs = res.treni.slice(0, 15).map(t =>
+          this.api.getAndamentoTreno(String(t.numeroTreno), t.codOrigine).pipe(
+            catchError(() => of(null))
+          )
+        );
+        if (obs.length === 0) return;
+        forkJoin(obs).subscribe({
+          next: (details) => {
+            const valid = details.filter((d): d is DettaglioTreno => d !== null && !!d.fermate?.length);
+            this.aggiornaTracciatiRegione(valid, res.treni);
+          }
+        });
+      }
+    });
+  }
+
+  private aggiornaTracciatiRegione(dettagli: DettaglioTreno[], treniReg: TrenoRegione[]) {
+    const seenKeys = new Set<string>();
+
+    for (let i = 0; i < dettagli.length; i++) {
+      const dett = dettagli[i];
+      const treg = treniReg[i];
+      const key = `${treg.numeroTreno}-${treg.codOrigine}`;
+      seenKeys.add(key);
+
+      const existing = this.treniAnimati.find(
+        t => t.dettaglio.numeroTreno === dett.numeroTreno
+      );
+
+      if (existing) {
+        existing.partenza = treg;
+        existing.dettaglio = dett;
+
+        const fermate = dett.fermate.filter(f => f.actualFermataType !== 3 && f.lat && f.lon);
+        existing.fermate = fermate;
+        existing.polyline.setLatLngs(fermate.map(f => [f.lat!, f.lon!]));
+
+        const searchName = (dett.stazioneUltimoRilevamento || '').toLowerCase().trim();
+        existing.ultimoRilevIdx = searchName ? fermate.findIndex(
+          f => f.stazione.toLowerCase().trim() === searchName
+        ) : -1;
+        existing.ultimoRilevTime = treg.ultimoRilev || 0;
+
+        if (existing.ultimoRilevIdx >= 0 && fermate[existing.ultimoRilevIdx]?.lat) {
+          existing.marker.setLatLng([
+            fermate[existing.ultimoRilevIdx].lat!,
+            fermate[existing.ultimoRilevIdx].lon!
+          ]);
+        }
+      }
+    }
+
+    for (let i = this.treniAnimati.length - 1; i >= 0; i--) {
+      const t = this.treniAnimati[i];
+      const key = `${t.partenza.numeroTreno}-${t.partenza.codOrigine}`;
+      if (!seenKeys.has(key)) {
+        t.marker.remove();
+        t.polyline.remove();
+        this.treniAnimati.splice(i, 1);
+      }
     }
   }
 
