@@ -437,10 +437,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
 
   private createTrainIcon(colore: string, label: string): L.DivIcon {
+    const hex = colore.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const textColor = lum > 0.5 ? '#1e293b' : '#fff';
     return L.divIcon({
       className: 'train-marker',
       html: `<div style="display:flex;flex-direction:column;align-items:center;width:80px;line-height:1;gap:1px;">
-        <span style="font-size:8px;font-weight:700;color:#fff;background:${colore};padding:1px 3px;border-radius:3px;white-space:nowrap;">${label}</span>
+        <span style="font-size:8px;font-weight:700;color:${textColor};background:${colore};padding:1px 3px;border-radius:3px;white-space:nowrap;">${label}</span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="3" y="5" width="18" height="13" rx="3" fill="${colore}" stroke="#fff" stroke-width="1.5"/>
           <circle cx="8" cy="19" r="3" fill="#333" stroke="#fff" stroke-width="1"/>
