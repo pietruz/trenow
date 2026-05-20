@@ -463,33 +463,25 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
           if (!fRilev?.lat || !fRilev?.lon || !fNext?.lat || !fNext?.lon) continue;
 
-          const arrivoNext = fNext.arrivo_teorico || fNext.partenza_teorica;
-          if (!arrivoNext) continue;
+          const partenzaFermata = fRilev.partenza_teorica || fRilev.arrivo_teorico;
+          const arrivoFermata = fNext.arrivo_teorico || fNext.partenza_teorica;
+          if (!partenzaFermata || !arrivoFermata) continue;
 
-          const arrivoEff = arrivoNext + p.ritardo * 60000;
-          const durata = arrivoEff - t.ultimoRilevTime;
+          const partenzaEff = partenzaFermata + p.ritardo * 60000;
+          const arrivoEff = arrivoFermata + p.ritardo * 60000;
+          const durata = arrivoEff - partenzaEff;
 
-          if (durata <= 0) {
-            this.aggiornaPosizioneTreno(t, fNext.lat!, fNext.lon!);
-            if (t.ultimoRilevIdx + 1 < t.fermate.length - 1) {
-              t.ultimoRilevIdx++;
-              t.ultimoRilevTime = arrivoEff;
-            }
-            continue;
-          }
-
-          const progress = (now - t.ultimoRilevTime) / durata;
-
-          if (progress <= 0) {
+          if (durata <= 0 || now <= partenzaEff) {
             this.aggiornaPosizioneTreno(t, fRilev.lat!, fRilev.lon!);
             continue;
           }
+
+          const progress = Math.min(1, (now - partenzaEff) / durata);
 
           if (progress >= 1) {
             this.aggiornaPosizioneTreno(t, fNext.lat!, fNext.lon!);
             if (t.ultimoRilevIdx + 1 < t.fermate.length - 1) {
               t.ultimoRilevIdx++;
-              t.ultimoRilevTime = arrivoEff;
             }
             continue;
           }
