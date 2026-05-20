@@ -263,6 +263,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       this.treniAnimati = [];
       this.treniRegioneLayer.clearLayers();
       if (this.map.hasLayer(this.treniRegioneLayer)) this.treniRegioneLayer.remove();
+      this.regionFilterActive.set(false);
+      this.regionName.set('');
+      this.regioneRfi = 0;
+      this.searchComp()?.reset();
     }
 
     const lastPassed = this.showTrainPath(treno);
@@ -340,6 +344,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       const fermate = dett.fermate.filter(f => f.actualFermataType !== 3 && f.lat && f.lon);
       if (fermate.length < 2) continue;
 
+      fermate.forEach(f => bounds.extend([f.lat!, f.lon!]));
+
       const colore = TRAIN_COLORS[i % TRAIN_COLORS.length];
 
       const searchName = (dett.stazioneUltimoRilevamento || '').toLowerCase().trim();
@@ -391,7 +397,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   private createTrainIcon(colore: string, numero: number): L.DivIcon {
     return L.divIcon({
-      className: '',
+      className: 'train-marker',
       html: `<div style="display:flex;flex-direction:column;align-items:center;width:60px;line-height:1;gap:1px;">
         <span style="font-size:9px;font-weight:700;color:#fff;background:${colore};padding:1px 4px;border-radius:3px;white-space:nowrap;">${numero}</span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
