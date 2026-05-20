@@ -380,11 +380,33 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         f => f.stazione.toLowerCase().trim() === searchName
       ) : -1;
       if (ultimoRilevIdx >= fermate.length - 1) ultimoRilevIdx = -1;
+
+      let posizionePersonalizzata: [number, number] | null = null;
+      if (ultimoRilevIdx < 0 && searchName && treg.ultimoRilev) {
+        for (let j = 0; j < fermate.length; j++) {
+          const t = (fermate[j].partenza_teorica || fermate[j].arrivo_teorico || 0);
+          if (t > 0 && (t + (treg.ritardo || 0) * 60000) <= treg.ultimoRilev) {
+            ultimoRilevIdx = j;
+          }
+        }
+        if (ultimoRilevIdx >= 0) {
+          const staz = this.stazioni.find(s =>
+            s.nome.toLowerCase().trim() === searchName ||
+            (s.nome_breve && s.nome_breve.toLowerCase().trim() === searchName)
+          );
+          if (staz && staz.lat && staz.lon) {
+            posizionePersonalizzata = [Number(staz.lat), Number(staz.lon)];
+          }
+        }
+      }
+
       const ultimoRilevTime = treg.ultimoRilev || 0;
 
-      const posIniziale: [number, number] = ultimoRilevIdx >= 0 && fermate[ultimoRilevIdx]?.lat
-        ? [fermate[ultimoRilevIdx].lat!, fermate[ultimoRilevIdx].lon!]
-        : [fermate[0].lat!, fermate[0].lon!];
+      const posIniziale: [number, number] = posizionePersonalizzata ?? (
+        ultimoRilevIdx >= 0 && fermate[ultimoRilevIdx]?.lat
+          ? [fermate[ultimoRilevIdx].lat!, fermate[ultimoRilevIdx].lon!]
+          : [fermate[0].lat!, fermate[0].lon!]
+      );
 
       const marker = L.marker(posIniziale, {
         icon: this.createTrainIcon(colore, treg.compNumeroTreno || String(treg.numeroTreno)),
