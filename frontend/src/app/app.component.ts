@@ -10,13 +10,6 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import * as L from 'leaflet';
 
-const TRAIN_COLORS = [
-  '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
-  '#ffff33', '#a65628', '#f781bf', '#999999', '#66c2a5',
-  '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854', '#ffd92f',
-  '#e5c494', '#b3b3b3', '#8dd3c7', '#ffffb3', '#bebada',
-];
-
 interface TrenoAnimato {
   marker: L.Marker;
   partenza: TrenoRegione;
@@ -376,7 +369,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       const fermate = dett.fermate.filter(f => f.actualFermataType !== 3 && f.lat && f.lon);
       if (fermate.length < 2) continue;
 
-      const colore = TRAIN_COLORS[i % TRAIN_COLORS.length];
+      const colore = getTrainColor(treg.categoria, treg.categoriaDescrizione);
 
       const searchName = (dett.stazioneUltimoRilevamento || '').toLowerCase().trim();
       let ultimoRilevIdx = searchName ? fermate.findIndex(
@@ -978,4 +971,34 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
     return lastPassed;
   }
+}
+
+const TRAIN_COLORS = [
+  '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
+  '#ffff33', '#a65628', '#f781bf', '#999999', '#66c2a5',
+  '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854', '#ffd92f',
+  '#e5c494', '#b3b3b3', '#8dd3c7', '#ffffb3', '#bebada',
+];
+
+let trainColorIndex = 0;
+const trainColorCache = new Map<string, string>();
+
+function getTrainColor(categoria: string, categoriaDescrizione: string): string {
+  const tipi: [RegExp, string][] = [
+    [/^REG$/, '#16a34a'],
+    [/^IC$/, '#6b7280'],
+    [/^ICN$/, '#1e40af'],
+    [/^FR$/, '#dc2626'],
+    [/^$/, '#dc2626'],  // Frecciarossa ha categoria vuota
+  ];
+  const cat = (categoria || categoriaDescrizione || '').trim();
+  for (const [re, col] of tipi) {
+    if (re.test(cat)) return col;
+  }
+  const key = cat || 'other';
+  if (!trainColorCache.has(key)) {
+    trainColorCache.set(key, TRAIN_COLORS[trainColorIndex % TRAIN_COLORS.length]);
+    trainColorIndex++;
+  }
+  return trainColorCache.get(key)!;
 }
