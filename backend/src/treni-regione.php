@@ -49,7 +49,7 @@ $stazioniRegionali = [
     'Marche' => ['S07113', 'S07104', 'S07506'],
     'Molise' => ['S09459', 'S09053', 'S11019'],
     'Piemonte' => ['S00219', 'S00035', 'S00248', 'S00470', 'S00462', 'S00610'],
-    'Puglia' => ['S11119', 'S11100', 'S11145', 'S11465', 'S11136'],
+    'Puglia' => ['S11119', 'S11100', 'S11145', 'S11465', 'S11136', 'S11108'],
     'Sardegna' => ['S12891', 'S12807', 'S12855', 'S12878'],
     'Sicilia' => ['S12002', 'S12332', 'S12301', 'S12349'],
     'Toscana' => ['S06421', 'S06500', 'S06725', 'S06039', 'S06915', 'S06809'],
@@ -81,24 +81,36 @@ if ($db && !$refresh) {
     }
 }
 
-$orario = viaggiatrenoDate();
+// Query with a 3-hour window to catch trains that already passed through hubs
+function viaggiatrenoDateOffset(int $hours): string {
+    $tz = new DateTimeZone('Europe/Rome');
+    $dt = new DateTime($hours === 0 ? 'now' : "{$hours} hours", $tz);
+    $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return $days[(int)$dt->format('w')] . ' ' . $months[(int)$dt->format('n') - 1] . ' ' . $dt->format('d Y H:i:s') . ' GMT' . $dt->format('O');
+}
+
+$orarioAttuale = viaggiatrenoDate();
+$orarioPassato = viaggiatrenoDateOffset(-3);
 
 $multi = curl_multi_init();
 $handles = [];
 foreach ($stationIds as $id) {
     foreach (['partenze', 'arrivi'] as $tipo) {
-        $url = API_BASE . "/{$tipo}/{$id}/" . rawurlencode($orario);
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 8,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; TrainTracker/1.0)',
-            CURLOPT_SSL_VERIFYPEER => false,
-        ]);
-        curl_multi_add_handle($multi, $ch);
-        $handles[] = ['ch' => $ch];
+        foreach ([$orarioPassato, $orarioAttuale] as $orario) {
+            $url = API_BASE . "/{$tipo}/{$id}/" . rawurlencode($orario);
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 8,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; TrainTracker/1.0)',
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            curl_multi_add_handle($multi, $ch);
+            $handles[] = ['ch' => $ch];
+        }
     }
 }
 
