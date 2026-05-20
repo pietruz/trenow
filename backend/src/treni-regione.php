@@ -81,36 +81,24 @@ if ($db && !$refresh) {
     }
 }
 
-// Query with a 3-hour window to catch trains that already passed through hubs
-function viaggiatrenoDateOffset(int $hours): string {
-    $tz = new DateTimeZone('Europe/Rome');
-    $dt = new DateTime($hours === 0 ? 'now' : "{$hours} hours", $tz);
-    $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return $days[(int)$dt->format('w')] . ' ' . $months[(int)$dt->format('n') - 1] . ' ' . $dt->format('d Y H:i:s') . ' GMT' . $dt->format('O');
-}
-
-$orarioAttuale = viaggiatrenoDate();
-$orarioPassato = viaggiatrenoDateOffset(-3);
+$orario = viaggiatrenoDate();
 
 $multi = curl_multi_init();
 $handles = [];
 foreach ($stationIds as $id) {
     foreach (['partenze', 'arrivi'] as $tipo) {
-        foreach ([$orarioPassato, $orarioAttuale] as $orario) {
-            $url = API_BASE . "/{$tipo}/{$id}/" . rawurlencode($orario);
-            $ch = curl_init();
-            curl_setopt_array($ch, [
-                CURLOPT_URL => $url,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 8,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; TrainTracker/1.0)',
-                CURLOPT_SSL_VERIFYPEER => false,
-            ]);
-            curl_multi_add_handle($multi, $ch);
-            $handles[] = ['ch' => $ch];
-        }
+        $url = API_BASE . "/{$tipo}/{$id}/" . rawurlencode($orario);
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 8,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; TrainTracker/1.0)',
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        curl_multi_add_handle($multi, $ch);
+        $handles[] = ['ch' => $ch];
     }
 }
 
@@ -138,6 +126,8 @@ foreach ($handles as $h) {
     foreach ($decoded as $t) {
         $key = ($t['numeroTreno'] ?? '') . '-' . ($t['codOrigine'] ?? '');
         if ($key === '-' || isset($seen[$key])) continue;
+        // Filtra treni già arrivati, non partiti o annullati
+        if (!empty($t['arrivato']) || !empty($t['nonPartito']) || ($t['provvedimento'] ?? 0) !== 0) continue;
         $seen[$key] = true;
         $treni[] = $t;
     }
