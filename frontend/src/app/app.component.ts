@@ -373,8 +373,6 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       const fermate = dett.fermate.filter(f => f.actualFermataType !== 3 && f.lat && f.lon);
       if (fermate.length < 2) continue;
 
-      fermate.forEach(f => bounds.extend([f.lat!, f.lon!]));
-
       const colore = TRAIN_COLORS[i % TRAIN_COLORS.length];
 
       const searchName = (dett.stazioneUltimoRilevamento || '').toLowerCase().trim();
@@ -407,6 +405,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         ultimoRilevIdx,
         ultimoRilevTime,
       });
+
+      bounds.extend(posIniziale);
     }
 
     this.treniRegioneLayer.addTo(this.map);
