@@ -70,6 +70,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     const s = { refreshInterval: val };
     this.settings.set(s);
     this.saveSettings(s);
+    if (this.selectedTrain()) {
+      this.startRefresh(this.selectedTrain()!);
+    }
   }
 
   private map!: L.Map;
