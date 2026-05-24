@@ -410,12 +410,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         const fLon = Number(fermate[ultimoRilevIdx].lon!);
         const nLat = Number(fermate[ultimoRilevIdx + 1].lat!);
         const nLon = Number(fermate[ultimoRilevIdx + 1].lon!);
-        const dLat = nLat - fLat;
-        const dLon = nLon - fLon;
-        if (dLat !== 0 || dLon !== 0) {
-          const gpLat = dLat !== 0 ? (posizionePersonalizzata[0] - fLat) / dLat : 0;
-          const gpLon = dLon !== 0 ? (posizionePersonalizzata[1] - fLon) / dLon : 0;
-          startProgress = Math.max(0, Math.min(1, (gpLat + gpLon) / 2));
+        const distTotale = haversine(fLat, fLon, nLat, nLon);
+        if (distTotale > 0) {
+          const distPercorsa = haversine(fLat, fLon, posizionePersonalizzata[0], posizionePersonalizzata[1]);
+          startProgress = Math.min(1, distPercorsa / distTotale);
         }
       }
 
@@ -869,11 +867,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
 
     if (lastPassed >= 0) {
-      let realIdx = -1;
-      for (let i = 0; i < fermateValide.length && i <= lastPassed; i++) {
-        if (fermateValide[i].lat && fermateValide[i].lon) realIdx++;
+      let coordIdx = -1;
+      for (let i = 0; i <= lastPassed; i++) {
+        if (fermateValide[i].lat && fermateValide[i].lon) coordIdx++;
       }
-      lastPassed = realIdx;
+      lastPassed = coordIdx;
     }
 
     if (allCoords.length === 0 && !rilevamentoCoords) return lastPassed;
@@ -985,6 +983,15 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
     return lastPassed;
   }
+}
+
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 const TRAIN_COLORS = [

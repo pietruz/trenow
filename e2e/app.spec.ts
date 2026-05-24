@@ -88,7 +88,11 @@ test.describe('TreNow — test funzionali', () => {
     await expect(page.locator('.train-overlay')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('.to-route')).toContainText('MILANO CENTRALE');
     await expect(page.locator('.to-route')).toContainText('LECCE');
-    await expect(page.locator('.countdown-indicator')).toBeVisible();
+    // polling attivo o treno già arrivato: uno dei due casi è valido
+    const hasCountdown = await page.locator('.countdown-indicator').count();
+    if (hasCountdown === 0) {
+      await expect(page.locator('.to-ritardo')).toBeVisible();
+    }
   });
 
   test('07 — refresh interval cambia durante polling attivo', async ({ page }) => {
@@ -263,5 +267,44 @@ test.describe('TreNow — test funzionali', () => {
     if (box) {
       expect(box.width).toBeGreaterThan(300);
     }
+  });
+
+  test('16 — tracciato bicolore completato/rimanente', async ({ page }) => {
+    test.setTimeout(30000);
+    await page.goto('/');
+    await clickToggle(page, 'Treno');
+    await page.getByPlaceholder('Cerca treno (es. 2107)').fill('9511');
+    await page.getByPlaceholder('Cerca treno (es. 2107)').press('Enter');
+    await expect(page.locator('.train-overlay')).toBeVisible({ timeout: 15000 });
+
+    const colors = await page.evaluate(() => {
+      const pane = document.querySelector('.leaflet-overlay-pane');
+      if (!pane) return null;
+      const paths = pane.querySelectorAll('path');
+      const found: string[] = [];
+      paths.forEach(p => {
+        const stroke = p.getAttribute('stroke');
+        if (stroke) found.push(stroke);
+      });
+      return found;
+    });
+    expect(colors).not.toBeNull();
+    expect(colors!.some(c => c === '#059669' || c === '#0a0')).toBe(true);
+  });
+
+  test('17 — regione mode mostra marker treni animati', async ({ page }) => {
+    test.setTimeout(30000);
+    await page.goto('/');
+    await clickToggle(page, 'Regione');
+    await page.selectOption('.regione-select', 'Lazio');
+    const resp = await page.waitForResponse(r =>
+      r.url().includes('/api/treni-regione') && r.status() === 200,
+      { timeout: 15000 }
+    );
+    const data = await resp.json();
+    await expect(async () => {
+      const count = await page.locator('.train-marker').count();
+      expect(count).toBeGreaterThan(0);
+    }).toPass({ timeout: 10000 });
   });
 });
