@@ -1,20 +1,22 @@
 :host { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 3px; box-sizing: border-box; }
-.train-detail-top { flex: 0 0 auto; }
+.train-detail-header { flex: 0 0 auto; padding-bottom: 4px; }
 .train-detail-list { flex: 1; overflow-y: auto; }
-.header { margin-bottom: 10px; }
-h3 { margin: 0; font-size: 16px; display: flex; align-items: center; }
+.header-row { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+.train-label { font-size: 14px; font-weight: 600; }
 .h3-spacer { flex: 1; }
-.countdown-indicator { display: inline-flex; align-items: center; margin-left: 8px; }
+.countdown-indicator { display: inline-flex; align-items: center; }
 .h4-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 4px 0; }
 h4 { margin: 0; font-size: 13px; color: #666; text-transform: uppercase; }
 .reset-btn { background: none; border: none; cursor: pointer; font-size: 14px; color: #9ca3af; padding: 2px 4px; line-height: 1; border-radius: 4px; }
 .reset-btn:hover { color: #4b5563; background: #f3f4f6; }
-.route { display: block; font-size: 13px; color: #666; margin: 4px 0; }
+.overlay-route { font-size: 12px; color: #666; margin: 4px 0; }
 .ritardo { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; background: #fef3c7; color: #92400e; }
 .in-orario { background: #d1fae5; color: #065f46; }
 .ritardo-alto { background: #fee2e2; color: #991b1b; }
 .subtitle { padding: 6px 8px; background: #fef3c7; border-radius: 4px; font-size: 12px; margin-bottom: 8px; }
 .rilevamento { font-size: 12px; color: #666; margin-bottom: 8px; }
+.fermate-toggle { background: none; border: none; cursor: pointer; color: #9ca3af; padding: 2px 4px; line-height: 1; border-radius: 4px; display: flex; align-items: center; }
+.fermate-toggle:hover { color: #4b5563; background: #f3f4f6; }
 .fermata { padding:  8px 8px 8px 0; border-bottom: 1px solid #f3f4f6; transition: background 0.2s; }
 .fermata:hover { background: #f9fafb; }
 .fermata.soppressa { opacity: 0.5; text-decoration: line-through; }

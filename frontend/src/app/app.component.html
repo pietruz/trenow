@@ -46,7 +46,7 @@
           @if (showSearch()) {
             <app-search #searchComp (onTrainSelected)="onTrainSelected($event)" (onStationSelected)="onStationSelected($event)" (onRegionSelected)="onRegionSelected($event)" />
           } @else if (selectedTrain()) {
-            <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="list" (onCloseSidebar)="showTrainSearch()" />
+            <app-train-detail [treno]="selectedTrain()!" [refreshCountdown]="refreshCountdown()" [countdownOffset]="countdownOffset()" mode="overlay" (onCloseSidebar)="resetAll()" />
           } @else if (selectedStation()) {
             <app-station-panel [stazione]="selectedStation()!" (onTrainClick)="onStationTrainClick($event)" (onReset)="resetAll()" />
           }
@@ -61,7 +61,7 @@
       </div>
     }
 
-    @if (selectedTrain(); as t) {
+    @if (isMobile() && selectedTrain(); as t) {
       <div class="train-overlay">
         <div class="to-header">
           <h3>
@@ -81,9 +81,6 @@
           </h3>
           <div class="to-route">
             <span>{{ t.origine }} → {{ t.destinazione }}</span>
-            @if (!isMobile() && showSearch()) {
-              <button class="to-info-btn" (click)="openTrainDetail()" title="Dettaglio treno">ⓘ</button>
-            }
           </div>
           @if (t.compRitardo.length > 0) {
             <span class="to-ritardo" [class.in-orario]="isTrainOnTime(t)" [class.ritardo-alto]="isTrainRitardoAlto(t)">

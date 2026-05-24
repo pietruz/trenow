@@ -85,13 +85,13 @@ test.describe('TreNow — test funzionali', () => {
     await clickToggle(page, 'Treno');
     await page.getByPlaceholder('Cerca treno (es. 2107)').fill('9511');
     await page.getByPlaceholder('Cerca treno (es. 2107)').press('Enter');
-    await expect(page.locator('.train-overlay')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('.to-route')).toContainText('MILANO CENTRALE');
-    await expect(page.locator('.to-route')).toContainText('LECCE');
+    await expect(page.locator('.aa-overlay app-train-detail')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.overlay-route')).toContainText('MILANO CENTRALE');
+    await expect(page.locator('.overlay-route')).toContainText('LECCE');
     // polling attivo o treno già arrivato: uno dei due casi è valido
     const hasCountdown = await page.locator('.countdown-indicator').count();
     if (hasCountdown === 0) {
-      await expect(page.locator('.to-ritardo')).toBeVisible();
+      await expect(page.locator('.aa-overlay .ritardo')).toBeVisible();
     }
   });
 
@@ -101,7 +101,7 @@ test.describe('TreNow — test funzionali', () => {
     await clickToggle(page, 'Treno');
     await page.getByPlaceholder('Cerca treno (es. 2107)').fill('9511');
     await page.getByPlaceholder('Cerca treno (es. 2107)').press('Enter');
-    await expect(page.locator('.train-overlay')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.aa-overlay app-train-detail')).toBeVisible({ timeout: 15000 });
 
     await page.click('.settings-btn');
     const slider = page.locator('input[type="range"]');
@@ -275,7 +275,7 @@ test.describe('TreNow — test funzionali', () => {
     await clickToggle(page, 'Treno');
     await page.getByPlaceholder('Cerca treno (es. 2107)').fill('9511');
     await page.getByPlaceholder('Cerca treno (es. 2107)').press('Enter');
-    await expect(page.locator('.train-overlay')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.aa-overlay app-train-detail')).toBeVisible({ timeout: 15000 });
 
     const colors = await page.evaluate(() => {
       const pane = document.querySelector('.leaflet-overlay-pane');

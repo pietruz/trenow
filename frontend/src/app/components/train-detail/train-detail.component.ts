@@ -1,4 +1,4 @@
-import { Component, input, output, effect } from '@angular/core';
+import { Component, input, output, effect, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { DettaglioTreno, Fermata } from '../../models/treno';
 import { TipoTrenoLabelPipe } from '../../pipes/tipo-treno.pipe';
@@ -14,8 +14,13 @@ export class TrainDetailComponent {
   treno = input.required<DettaglioTreno>();
   refreshCountdown = input(0);
   countdownOffset = input(0);
-  mode = input<'full' | 'list'>('full');
+  mode = input<'list' | 'overlay'>('list');
   onCloseSidebar = output<void>();
+  fermateCollapsed = signal(false);
+
+  toggleFermate() {
+    this.fermateCollapsed.update(v => !v);
+  }
 
   constructor() {
     effect(() => {
