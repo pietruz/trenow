@@ -26,9 +26,9 @@ const REGIONI: RegioneEntry[] = [
   { nome: 'Sardegna', rfi: 20 },
   { nome: 'Sicilia', rfi: 14 },
   { nome: 'Toscana', rfi: 13 },
-  { nome: 'Trentino-Alto Adige', rfi: 12 },
-  { nome: 'Umbria', rfi: 6 },
-  { nome: "Valle d'Aosta", rfi: 3 },
+  { nome: 'Trentino-Alto Adige', rfi: 9 },
+  { nome: 'Umbria', rfi: 11 },
+  { nome: "Valle d'Aosta", rfi: 4 },
   { nome: 'Veneto', rfi: 12 },
 ].sort((a, b) => a.nome.localeCompare(b.nome));
 
@@ -100,7 +100,8 @@ export class SearchComponent {
           } else {
             this.stationResults = res;
           }
-        }
+        },
+        error: () => {}
       });
     }
   }
@@ -108,7 +109,8 @@ export class SearchComponent {
   selectDisambigua(d: DisambiguaTreno) {
     this.disambigua = [];
     this.api.getAndamentoTreno(d.numero, d.codiceOrigine, d.timestamp).subscribe({
-      next: (res) => this.onTrainSelected.emit(res)
+      next: (res) => this.onTrainSelected.emit(res),
+      error: () => {}
     });
   }
 

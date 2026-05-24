@@ -205,7 +205,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       next: (stazioni) => {
         this.stazioni = stazioni;
         this.showStazioni(stazioni);
-      }
+      },
+      error: () => {}
     });
   }
 
@@ -310,7 +311,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       8: [44.5, 11.0],
       9: [46.2, 11.2],
       10: [46.0, 13.0],
-      11: [43.5, 13.5],
+       11: [43.0, 12.5],
       12: [45.5, 12.0],
       13: [43.5, 11.0],
       14: [37.5, 14.0],
@@ -355,7 +356,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
             const valid = details.map((d, i) => d ? { dett: d as DettaglioTreno, treg: sliced[i] } : null)
               .filter((x): x is { dett: DettaglioTreno; treg: TrenoRegione } => x !== null && !!x.dett.fermate?.length);
             this.disegnaTracciatiRegione(valid.map(x => x.dett), valid.map(x => x.treg));
-          }
+          },
+          error: () => {}
         });
       },
       error: () => alert('Errore nel caricamento dei treni della regione')
@@ -605,9 +607,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
             const valid = details.map((d, i) => d ? { dett: d as DettaglioTreno, treg: sliced[i] } : null)
               .filter((x): x is { dett: DettaglioTreno; treg: TrenoRegione } => x !== null && !!x.dett.fermate?.length);
             this.aggiornaTracciatiRegione(valid.map(x => x.dett), valid.map(x => x.treg));
-          }
+          },
+          error: () => {}
         });
-      }
+      },
+      error: () => {}
     });
   }
 
@@ -700,12 +704,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
           const match = res.disambigua.find(d => d.codiceOrigine === e.codOrigine);
           if (match) {
             this.api.getAndamentoTreno(match.numero, match.codiceOrigine, match.timestamp)
-              .subscribe({ next: (dett) => this.onTrainSelected(dett) });
+              .subscribe({
+                next: (dett) => this.onTrainSelected(dett),
+                error: () => {}
+              });
           }
         } else {
           this.onTrainSelected(res);
         }
-      }
+      },
+      error: () => {}
     });
   }
 
@@ -770,7 +778,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
           if (isCancelled || (this.totalCoords > 0 && lastPassed >= this.totalCoords - 1)) {
             this.stopRefresh();
           }
-        }
+        },
+        error: () => {}
       });
       this.refreshCountdown.set(interval);
       this.countdownOffset.set(94.25);
@@ -804,6 +813,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.markersLayer.clearLayers();
     if (this.completedPath) { this.completedPath.remove(); this.completedPath = null; }
     if (this.remainingPath) { this.remainingPath.remove(); this.remainingPath = null; }
+    this.lastValidRilevamentoCoords = null;
 
     if (!treno.fermate?.length) return -1;
 

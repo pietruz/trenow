@@ -14,7 +14,7 @@
   top: 46px;
   right: 16px;
   max-width: clamp(200px, 50vw, 360px);
-  z-index: 1001;
+  z-index: 1000;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.15);
@@ -187,6 +187,7 @@
   left: 16px;
   bottom: 16px;
   width: 380px;
+  max-width: calc(100vw - 32px);
   max-height: calc(100dvh - 80px);
   background: #fff;
   border-radius: 12px;

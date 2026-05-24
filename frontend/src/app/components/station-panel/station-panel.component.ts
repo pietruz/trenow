@@ -26,7 +26,10 @@ export class StationPanelComponent {
       if (!s) return;
 
       (t === 'partenze' ? this.api.getPartenze(s.id) : this.api.getArrivi(s.id))
-        .subscribe({ next: (res) => this.treni.set(res) });
+        .subscribe({
+          next: (res) => this.treni.set(res),
+          error: () => {}
+        });
     });
   }
 
